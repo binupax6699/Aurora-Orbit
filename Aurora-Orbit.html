@@ -68,8 +68,12 @@
             <button class="search-btn" id="search-btn" aria-label="Search" type="button">
                 <img src="icons/buttons/search.svg" class="menu-icon search-icon" alt="Search">
             </button>
-
+            
             <input type="text" id="country-search-input" class="search-input" placeholder="Search a country..." autocomplete="off" spellcheck="false" aria-label="Search for a country">
+
+            <button class="search-clear" id="search-clear-btn" type="button" aria-label="Clear search" tabindex="-1">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19"/></svg>
+            </button>
 
             <!-- Search results -->
             <div id="search-results" class="search-results-list"></div>

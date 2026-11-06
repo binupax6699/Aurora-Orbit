@@ -494,3 +494,26 @@ document.addEventListener("pointerdown", event => {
         searchResults.classList.remove("active");
     }
 }, true);
+
+/* SEARCH CLEAR */
+
+(function () {
+    const clearInput = document.getElementById("country-search-input");
+    const clearBtn = document.getElementById("search-clear-btn");
+    const clearWrapper = document.getElementById("search-wrapper");
+    if (!clearInput || !clearBtn || !clearWrapper) return;
+
+    const syncClear = () => clearWrapper.classList.toggle("has-text", clearInput.value.length > 0);
+
+    clearInput.addEventListener("input", syncClear);
+    clearInput.addEventListener("focus", syncClear);
+    clearWrapper.addEventListener("pointerenter", syncClear);
+
+    clearBtn.addEventListener("mousedown", e => e.preventDefault());
+    clearBtn.addEventListener("click", () => {
+        clearInput.value = "";
+        clearInput.dispatchEvent(new Event("input", { bubbles: true }));
+        syncClear();
+        clearInput.focus();
+    });
+})();

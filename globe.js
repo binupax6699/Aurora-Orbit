@@ -110,14 +110,21 @@ const countryInfoCode = document.getElementById("country-info-code");
 
 const toggleBordersButton = document.getElementById("toggle-borders-btn");
 
-/* 005. CONSTANTS */
+/* CONSTANTS */
 const EARTH_RADIUS_KM = 6371;
 const KM_PER_UNIT = EARTH_RADIUS_KM / GLOBE_RADIUS_UNITS;
 const MIN_ALTITUDE_KM = 500;
 const MIN_CAMERA_DIST = GLOBE_RADIUS_UNITS + (MIN_ALTITUDE_KM / KM_PER_UNIT);
-const DESELECT_ALTITUDE_KM = 10000;
-const COUNTRY_LABEL_ALTITUDE_KM = 11000;
+
+const IS_MOBILE = window.matchMedia("(max-width: 700px)").matches;
+const MAX_ALTITUDE_KM = IS_MOBILE ? 30000 : 20000;
+const MAX_CAMERA_DIST = GLOBE_RADIUS_UNITS + (MAX_ALTITUDE_KM / KM_PER_UNIT);
+
+const DESELECT_ALTITUDE_KM = IS_MOBILE ? 18000 : 11000;
+const COUNTRY_LABEL_ALTITUDE_KM = IS_MOBILE ? 20000 : 12000;
 const DESELECT_CAMERA_DIST = Math.min(7.5, GLOBE_RADIUS_UNITS + (DESELECT_ALTITUDE_KM / KM_PER_UNIT));
+
+     if (IS_MOBILE) camera.position.set(0, 0, MAX_CAMERA_DIST);
 
 const HIGH_RES_COUNTRY_URL = "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_10m_admin_0_countries_iso.geojson";
 const LOW_RES_BORDER_URL = "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_map_units.geojson";
@@ -127,7 +134,7 @@ const LOW_RES_BORDER_URL = "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-ve
    HELPERS
    ======= */
 
-/* 006. GENERAL UTILS */
+/* GENERAL UTILS */
 function normalizeText(str) {
     return String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
 }
@@ -365,6 +372,7 @@ controls.minDistance = MIN_CAMERA_DIST;
 controls.maxDistance = 7.5;
 controls.mouseButtons.LEFT = THREE.MOUSE.ROTATE;
 controls.mouseButtons.MIDDLE = THREE.MOUSE.DOLLY;
+controls.maxDistance = MAX_CAMERA_DIST;
 
 canvas.addEventListener("contextmenu", event => event.preventDefault());
 
