@@ -1,6 +1,6 @@
 /* ================= COUNTRY PANEL (SMALL BAR + BIG MENU) ================= */
 
-/*i use AI in sum of the code */
+/* i use AI in sum of the code */
 
 /*
     - Flags          flags
