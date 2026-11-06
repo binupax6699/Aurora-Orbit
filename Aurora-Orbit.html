@@ -1,0 +1,352 @@
+<!--
+
+            00000000--
+         000000000000000--
+      000000000000000000000--
+    0000000000000000000000000--
+   000000000000000000000000000--
+  00000000000000000000000000000--
+  0000000:0Aurora Orbit00000000--
+  00000000000000000000000000000--
+   000000000000000000000000000--
+    0000000000000000000000000--
+      000000000000000000000--
+         000000000000000--
+            00000000--
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    
+
+    <title>Aurora Orbit</title>
+
+    <!-- Browser Tab Icon -->
+    <link rel="icon" type="image/png" href="icons/AURORA_ORBIT_icon.png">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- Three.js -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+    <!-- Saved theme -->
+    <script>try{if(JSON.parse(localStorage.getItem("aurora-orbit-settings")||"{}").theme==="light")document.documentElement.classList.add("light");}catch(e){}</script>
+
+</head>
+<body> 
+
+    <!-- LOADING SCREEN -->
+    <div id="loading-screen">
+        <div class="loading-content-center">
+            <div id="flicker-title" class="flicker-title">
+                <span>A</span><span>U</span><span>R</span><span>O</span><span>R</span><span>A</span>
+                <span>O</span><span>R</span><span>B</span><span>I</span><span>T</span>
+            </div>
+        </div>
+        <div class="loading-details-bottom-left">
+            <span id="loading-percentage">0%</span>
+            <span id="loading-text">Loading The System...</span>
+        </div>
+    </div>
+
+    <!-- TOP-LEFT HEADER TITLE -->
+    <div class="top-header-brand">
+        <h1 class="header-flicker-title">
+            <span>A</span><span>U</span><span>R</span><span>O</span><span>R</span><span>A</span>
+            <span>O</span><span>R</span><span>B</span><span>I</span><span>T</span>
+        </h1>
+    </div>
+
+    <!-- SEARCH BAR -->
+    <div class="search-bar-container" id="top-search-container">
+        <div class="search-bar-wrapper" id="search-wrapper">
+            <button class="search-btn" id="search-btn" aria-label="Search" type="button">
+                <img src="icons/buttons/search.svg" class="menu-icon search-icon" alt="Search">
+            </button>
+
+            <input type="text" id="country-search-input" class="search-input" placeholder="Search a country..." autocomplete="off" spellcheck="false" aria-label="Search for a country">
+
+            <!-- Search results -->
+            <div id="search-results" class="search-results-list"></div>
+        </div>
+    </div>
+
+
+    <!-- 3D GLOBE -->
+    <canvas id="webgl"></canvas>
+
+    <!-- Country labels -->
+    <div id="country-tags-container"></div>
+
+    <!-- MENU -->
+    <div class="top-nav-container" id="top-nav">
+
+       <!-- MENU ACTIONS -->
+        <div class="menu-actions" id="menu-actions" aria-hidden="true">
+
+            <!-- ================= TOGGLE BORDERS ================= -->
+            <button class="menu-action" id="toggle-borders-btn" type="button" aria-label="Toggle all country borders" title="Toggle All Country Borders">
+                <img src="icons/buttons/globe.svg" class="menu-icon default-icon" alt="Toggle Borders">
+                <img src="icons/buttons/globe-filled.svg" class="menu-icon pressed-icon" alt="Toggle Borders Active">
+            </button>
+
+            <!-- ================= FULLSCREEN ================= -->
+            <button class="menu-action" id="fullscreen-btn" type="button" aria-label="Toggle Fullscreen" title="Toggle Fullscreen">
+                <img src="icons/buttons/fullscreen.svg" class="menu-icon default-icon" alt="Fullscreen">
+                <img src="icons/buttons/fullscreen-filled.svg" class="menu-icon pressed-icon" alt="Fullscreen Active">
+            </button>
+
+            <!-- ================= SOCIAL ================= -->
+            <div class="social-btn-wrapper">
+                <button class="menu-action" id="social-btn" type="button" aria-label="Social Accounts" title="My Social">
+                    <img src="icons/buttons/social.svg" class="menu-icon default-icon" alt="Social">
+                    <img src="icons/buttons/social-filled.svg" class="menu-icon pressed-icon" alt="Close Social">
+                </button>
+            </div>
+
+            <!-- ================= GITHUB ================= -->
+            <a class="menu-action" id="github-link" href="https://github.com/binupax6699/Aurora-Orbit" target="_blank" rel="noopener noreferrer" aria-label="Open Aurora Orbit GitHub" title="GitHub">
+                <img src="icons/buttons/github.svg" class="menu-icon default-icon" alt="GitHub">
+                <img src="icons/buttons/github-filled.svg" class="menu-icon pressed-icon" alt="GitHub Active">
+            </a>
+
+            <!-- ================= SETTINGS ================= -->
+            <div class="settings-btn-wrapper">
+                <button class="menu-action" id="settings-btn" type="button" aria-label="Settings" title="Settings">
+                    <img src="icons/buttons/settings.svg" class="menu-icon default-icon" alt="Settings">
+                    <img src="icons/buttons/settings-filled.svg" class="menu-icon pressed-icon" alt="Close Settings">
+                </button>
+            </div>
+
+
+        </div>
+
+        <!-- SOCIAL POPUP -->
+        <div id="social-modal-overlay" class="social-modal-overlay">
+            <div class="social-modal-card">
+                <div class="popup-title">My socials</div>
+                <div class="social-list">
+                    <!-- YouTube -->
+                    <a href="https://www.youtube.com/@Binupax6699" target="_blank" rel="noopener noreferrer" class="social-item">
+                        <div class="social-badge youtube-badge">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                            </svg>
+                        </div>
+                        <span class="social-label">YouTube</span>
+                    </a>
+
+                    <!-- Instagram -->
+                    <a href="https://www.instagram.com/binupax6699" target="_blank" rel="noopener noreferrer" class="social-item">
+                        <div class="social-badge instagram-badge">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/>
+                            </svg>
+                        </div>
+                        <span class="social-label">Instagram</span>
+                    </a>
+
+                    <!-- TikTok -->
+                    <a href="https://www.tiktok.com/@binupax6699" target="_blank" rel="noopener noreferrer" class="social-item">
+                        <div class="social-badge tiktok-badge">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.67 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.82.56-1.23 1.59-1.11 2.57.08.77.53 1.48 1.18 1.9.89.58 2.08.57 2.94-.03.71-.5 1.12-1.33 1.13-2.2.02-4.38.01-8.75.01-13.12z"/>
+                            </svg>
+                        </div>
+                        <span class="social-label">TikTok</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- SETTINGS POPUP -->
+        <div id="settings-modal-overlay" class="settings-modal-overlay">
+            <div class="settings-modal-card">
+                <div class="popup-title">Settings</div>
+
+                <div class="settings-list">
+
+                    <!-- APPEARANCE -->
+                    <section class="settings-section">
+                        <div class="settings-heading">Appearance</div>
+                        <div class="theme-options" role="radiogroup" aria-label="Appearance">
+                            <button class="theme-option" id="theme-dark" data-theme="dark" role="radio" aria-checked="true" type="button">
+                                <span class="theme-dot theme-dot-dark"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                                <span class="theme-name">Dark</span>
+                            </button>
+                            <button class="theme-option" id="theme-light" data-theme="light" role="radio" aria-checked="false" type="button">
+                                <span class="theme-dot theme-dot-light"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg></span>
+                                <span class="theme-name">Light</span>
+                            </button>
+                        </div>
+                    </section>
+
+                    <!-- DETAILS -->
+                    <section class="settings-section">
+                        <div class="settings-heading">Details</div>
+                        <div class="settings-row">
+                            <span class="settings-label">Stars</span>
+                            <button class="toggle" id="toggle-stars" role="switch" aria-checked="true" aria-label="Stars" type="button"><span class="toggle-knob"></span></button>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label">Clouds</span>
+                            <button class="toggle" id="toggle-clouds" role="switch" aria-checked="true" aria-label="Clouds" type="button"><span class="toggle-knob"></span></button>
+                        </div>
+                    </section>
+
+                    <!-- SOUND -->
+                    <section class="settings-section">
+                        <div class="settings-heading">Sound</div>
+                        <div class="settings-row settings-row-slider">
+                            <span class="settings-label">Ambient</span>
+                            <input class="ambient-slider" id="ambient-volume" type="range" min="0" max="100" step="1" value="0" aria-label="Ambient sound volume">
+                            <output class="settings-value" id="ambient-value" for="ambient-volume">Off</output>
+                        </div>
+                    </section>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- MENU SLIDER TRIGGER BUTTON -->
+        <div class="menu-wrapper">
+            <button class="menu-btn" id="menu-btn" aria-label="Open menu" aria-expanded="false" type="button">
+                <span class="bar"></span>
+                <span class="bar"></span>
+                <span class="bar"></span>
+            </button>
+        </div>
+    </div>
+
+    <!-- BOTTOM SCALE BAR -->
+    <div class="scale-bar-container">
+        <div class="scale-labels">
+            <span id="scale-start">0</span>
+            <span id="scale-mid">3,800</span>
+            <span id="scale-end">7,600 km</span>
+        </div>
+
+        <div class="scale-track">
+            <div id="scale-progress-fill"></div>
+        </div>
+
+        <div id="altitude-display">
+            Alt: 0.00 km | Cam: 0.00
+        </div>
+    </div>
+
+    <!-- SELECTED COUNTRY INFORMATION -->
+    <div id="country-info" class="country-info">
+        <div class="country-info-name" id="country-info-name"></div>
+        <div class="country-info-code" id="country-info-code"></div>
+    </div>
+
+    <!-- COUNTRY PANEL -->
+    <aside id="country-panel" class="country-panel" data-state="hidden" aria-label="Country information" aria-hidden="true">
+
+        <!-- SMALL BAR -->
+        <div class="cp-mini" id="cp-mini">
+            <div class="cp-mini-bg"></div>
+            <svg class="cp-mini-outline" viewBox="0 0 72 420" aria-hidden="true">
+                <path d="M0 0 C0 36 72 28 72 64 L72 356 C72 392 0 384 0 420"/>
+            </svg>
+
+            <div class="cp-mini-content">
+                <img id="cp-mini-flag" class="cp-flag cp-mini-flag" alt="">
+                <span id="cp-mini-code" class="cp-mini-code"></span>
+                <span id="cp-mini-time" class="cp-mini-time">--:--</span>
+
+                <button class="cp-arrow-btn" id="cp-expand-btn" type="button" aria-label="Open country details" title="Open details" tabindex="-1">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l6 6-6 6"/><path d="M12 6l6 6-6 6"/></svg>
+                </button>
+
+                <div class="cp-mini-weather">
+                    <img id="cp-mini-wicon" class="cp-wicon" alt="">
+                    <span id="cp-mini-temp" class="cp-mini-temp">--°C</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- BIG MENU -->
+        <div class="cp-big" id="cp-big">
+
+            <!-- DATE & TIME -->
+            <div class="cp-card cp-pill cp-clock">
+                <span class="cp-date" id="cp-date">--/--/----</span>
+                <span class="cp-time-wrap"><span class="cp-time" id="cp-time">--:--</span><span class="cp-ampm" id="cp-ampm"></span></span>
+            </div>
+
+            <!-- MAIN CARD -->
+            <div class="cp-card cp-main" id="cp-main">
+
+                <div class="cp-head">
+                    <img id="cp-flag" class="cp-flag cp-head-flag" alt="">
+                    <div class="cp-head-text">
+                        <span class="cp-name" id="cp-name"></span>
+                        <span class="cp-region" id="cp-region"></span>
+                    </div>
+                    <button class="cp-arrow-btn cp-collapse-btn" id="cp-collapse-btn" type="button" aria-label="Close details" title="Back to small bar" tabindex="-1">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l6 6-6 6"/><path d="M12 6l6 6-6 6"/></svg>
+                    </button>
+                </div>
+
+                <div class="cp-section">
+                    <div class="cp-label" id="cp-gdp-title">GDP</div>
+                    <div class="cp-gdp">
+                        <div class="cp-chart" id="cp-chart"></div>
+                        <div class="cp-gdp-side">
+                            <div class="cp-gdp-value" id="cp-gdp-value"></div>
+                            <div class="cp-gdp-capita" id="cp-gdp-capita"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="cp-section cp-stats">
+                    <div class="cp-stat">
+                        <div class="cp-label">Area</div>
+                        <div class="cp-stat-value" id="cp-area"></div>
+                    </div>
+                    <div class="cp-stat">
+                        <div class="cp-label">Population</div>
+                        <div class="cp-stat-value" id="cp-pop"></div>
+                    </div>
+                </div>
+
+                <div class="cp-section cp-photo-section">
+                    <div class="cp-photos" id="cp-photos"></div>
+                    <div class="cp-credit">Photos: Wikimedia</div>
+                </div>
+</div>
+
+            <!-- WEATHER -->
+            <div class="cp-card cp-pill cp-weather">
+                <div class="cp-weather-main">
+                    <img id="cp-wicon" class="cp-wicon cp-wicon-big" alt="">
+                    <div class="cp-wtemp-wrap">
+                        <span class="cp-wtemp" id="cp-wtemp">--°C</span>
+                        <span class="cp-wcity" id="cp-wcity"></span>
+                    </div>
+                </div>
+                <div class="cp-weather-side">
+                    <span class="cp-wtext" id="cp-wtext"></span>
+                    <span class="cp-whl"><span id="cp-whigh">H:--</span><span id="cp-wlow">L:--</span></span>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- JS  -->
+    <script src="orbit-controls.js"></script> <!-- orbit controls to move -->
+    <script src="globe.js"></script>          <!-- globe -->
+    <script src="countries.js"></script>      <!-- country data -->
+    <script src="interaction.js"></script>    <!-- selection -->
+    <script src="country-panel.js"></script>  <!-- left country panel -->
+    <script src="menu.js"></script>           <!-- menu -->
+
+</body>
+</html>
