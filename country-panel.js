@@ -361,10 +361,11 @@
         return out;
     }
 
-    const landmarkQueries = LANDMARKS[country]
-        ? LANDMARKS[country]
+    const manual = LANDMARKS[country];
+    const landmarkQueries = manual ? manual.slice(0, 2)
         : [`${country} famous landmark`, `${country} historic site`, `${capital || country} landmark`];
-    const landscapeQueries = [`${country} landscape`, `${country} mountains`, `${country} national park`, `${country} coast`];
+    const landscapeQueries = manual ? manual.slice(2, 4)
+        : [`${country} landscape`, `${country} mountains`, `${country} national park`, `${country} coast`];
 
     const [landmarkGroups, landscapeGroups] = await Promise.all([
         Promise.all(landmarkQueries.map(search)),
