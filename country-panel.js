@@ -320,23 +320,63 @@
     }
 
     async function fetchPhotos(entity, capital) {
-        const titles = [wikiTitle(entity), capital].filter(Boolean).join("|");
-        const url = "https://en.wikipedia.org/w/api.php?action=query&format=json&origin=*" +
-            `&generator=images&gimlimit=60&titles=${encodeURIComponent(titles)}` +
-            "&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=640";
-        const data = await getJSON(url);
-        const pages = Object.values((data.query && data.query.pages) || {});
-        const skip = /flag|map|coat|emblem|seal|locator|location|logo|icon|symbol|diagram|signature|stamp|banknote|coin|portrait|chart|graph/i;
+    const country = wikiTitle(entity);
+    const bad = /flag|map|coat|emblem|seal|locator|logo|icon|symbol|diagram|signature|stamp|banknote|coin|portrait|chart|graph|painting|poster|protest|army|military|police|soldier|war|refugee|camp|meeting|treaty|president|minister|election|drawing|interior|crowd|people|train|bus|car/i;
 
-        return pages
-            .sort((a, b) => (a.index || 0) - (b.index || 0))
-            .filter(page => {
-                const info = page.imageinfo && page.imageinfo[0];
-                return info && info.mime === "image/jpeg" && info.width >= 900 && info.thumburl && !skip.test(page.title);
-            })
-            .slice(0, 4)
-            .map(page => ({ url: page.imageinfo[0].thumburl, title: page.title.replace(/^File:/, "").replace(/\.[a-z]+$/i, "") }));
+    async function search(q) {
+        const url = "https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*" +
+            `&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${encodeURIComponent(q + " filetype:bitmap")}` +
+            "&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=640";
+        try {
+            const data = await getJSON(url);
+            const pages = Object.values((data.query && data.query.pages) || {});
+            return pages
+                .sort((a, b) => (a.index || 0) - (b.index || 0))
+                .filter(page => {
+                    const info = page.imageinfo && page.imageinfo[0];
+                    if (!info || info.mime !== "image/jpeg" || !info.thumburl) return false;
+                    const ratio = info.width / info.height;
+                    return info.width >= 1200 && ratio >= 1.2 && ratio <= 2 && !bad.test(page.title);
+                })
+                .map(page => ({
+                    url: page.imageinfo[0].thumburl,
+                    title: page.title.replace(/^File:/, "").replace(/\.[a-z]+$/i, "")
+                }));
+        } catch (e) {
+            return [];
+        }
     }
+
+    function pick(groups, count, seen) {
+        const out = [];
+        for (let round = 0; round < 3 && out.length < count; round++) {
+            for (const list of groups) {
+                const p = list[round];
+                if (p && !seen.has(p.title) && out.length < count) {
+                    seen.add(p.title);
+                    out.push(p);
+                }
+            }
+        }
+        return out;
+    }
+
+    const landmarkQueries = LANDMARKS[country]
+        ? LANDMARKS[country]
+        : [`${country} famous landmark`, `${country} historic site`, `${capital || country} landmark`];
+    const landscapeQueries = [`${country} landscape`, `${country} mountains`, `${country} national park`, `${country} coast`];
+
+    const [landmarkGroups, landscapeGroups] = await Promise.all([
+        Promise.all(landmarkQueries.map(search)),
+        Promise.all(landscapeQueries.map(search))
+    ]);
+
+    const seen = new Set();
+    const landmarks = pick(landmarkGroups, 2, seen);
+    const landscapes = pick(landscapeGroups, 2, seen);
+
+    return [...landmarks, ...landscapes];
+}
 
     /* WEATHER */
     function weatherInfo(code, isDay) {
