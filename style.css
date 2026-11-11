@@ -195,7 +195,7 @@ a {
     pointer-events: none;
 }
 
-/* DEtails */
+/* Details */
 
 .loading-details-bottom-left {
     align-self: flex-start;
@@ -898,6 +898,7 @@ a {
 .settings-modal-overlay {
     position: absolute;
     bottom: calc(100% + 12px);
+    border-radius: 24px;
     right: var(--dock-right, 50px);
     -webkit-backdrop-filter: var(--glass-blur);
     backdrop-filter: var(--glass-blur);
