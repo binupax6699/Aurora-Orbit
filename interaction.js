@@ -1,4 +1,4 @@
-/* ================= INTERACTION =================
+/* ================= INTERACTION ================= */
 
 /*i use AI in sum of the code */
 

@@ -361,6 +361,86 @@
         updateVolume();
     }
 
+    /* BUTTON SOUNDS */
+    (function () {
+    "use strict";
+
+    const BUTTON_SOUND = "sounds/ui/buttons/clicksound.mp3";
+    const COUNTRY_FOLDER = "sounds/ui/select_country/";
+    const COUNTRY_PREFIX = "scountry";
+    const COUNTRY_COUNT = 2;
+
+    const $ = id => document.getElementById(id);
+
+    let slider = $("buttons-volume");
+    let valueText = $("buttons-value");
+
+    if (!slider) {
+        const ambient = $("ambient-volume");
+        const ambientRow = ambient && ambient.closest(".settings-row");
+        if (ambientRow) {
+            const row = document.createElement("div");
+            row.className = "settings-row settings-row-slider";
+            row.innerHTML =
+                '<span class="settings-label">Buttons</span>' +
+                '<input class="ambient-slider" id="buttons-volume" type="range" min="0" max="100" step="1" value="50" aria-label="Button sounds volume">' +
+                '<output class="settings-value" id="buttons-value" for="buttons-volume">50%</output>';
+            ambientRow.insertAdjacentElement("afterend", row);
+            slider = $("buttons-volume");
+            valueText = $("buttons-value");
+        }
+    }
+
+    if (!slider) {
+        console.warn("[Aurora Orbit] Button sounds: could not find or create the Buttons slider");
+        return;
+    }
+
+    function updateSlider() {
+        const percent = Number(slider.value);
+        slider.style.setProperty("--fill", percent + "%");
+        if (valueText) valueText.textContent = percent === 0 ? "Off" : percent + "%";
+    }
+    slider.addEventListener("input", updateSlider);
+    updateSlider();
+
+    function playSound(src) {
+        const volume = Math.pow(Number(slider.value) / 100, 2);
+        if (volume === 0) return;
+        const sound = new Audio(src);
+        sound.volume = volume;
+        sound.addEventListener("error", () => console.warn("[Aurora Orbit] Sound file not found:", src));
+        sound.play().catch(error => console.warn("[Aurora Orbit] Sound blocked:", error.message));
+    }
+
+    let lastNumber = 0;
+    function playCountrySound() {
+        let number;
+        do {
+            number = Math.floor(Math.random() * COUNTRY_COUNT) + 1;
+        } while (COUNTRY_COUNT > 1 && number === lastNumber);
+        lastNumber = number;
+        playSound(COUNTRY_FOLDER + COUNTRY_PREFIX + number + ".mp3");
+    }
+
+    document.addEventListener("click", event => {
+        if (event.target.closest("button, a, [role='button'], [role='switch'], .theme-option")) {
+            playSound(BUTTON_SOUND);
+        }
+    }, true);
+
+    if (typeof selectCountry === "function" && !window.__countrySoundHooked) {
+        window.__countrySoundHooked = true;
+        const original = selectCountry;
+        window.selectCountry = function (...args) {
+            playCountrySound();
+            return original.apply(this, args);
+        };
+    }
+
+    console.log("[Aurora Orbit] Button sounds ready");
+})();
+
     /* START */
     applyTheme(settings.theme, false);
     applyStars(settings.stars);
