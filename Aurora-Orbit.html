@@ -119,6 +119,12 @@
                 <img src="icons/buttons/github-filled.svg" class="menu-icon pressed-icon" alt="GitHub Active">
             </a>
 
+            <!-- ================= CREDITS ================= -->
+            <button class="menu-action" id="credits-btn" type="button" aria-label="Credits" title="Credits">
+                <img src="icons/buttons/copyright.svg" class="menu-icon default-icon" alt="Copyright">
+                <img src="icons/buttons/copyright-filled.svg" class="menu-icon pressed-icon" alt="Close Copyright">
+            </button>
+
             <!-- ================= SETTINGS ================= -->
             <div class="settings-btn-wrapper">
                 <button class="menu-action" id="settings-btn" type="button" aria-label="Settings" title="Settings">
@@ -220,6 +226,17 @@
                 </div>
             </div>
         </div>
+
+                  <!-- credits -->
+        <div class="wl-credits-overlay" id="wl-credits-overlay" aria-hidden="true">
+            <div class="wl-credits-card" role="dialog" aria-label="Credits">
+                <div class="wl-credits-head">
+                  <span class="wl-credits-title">Credits</span>
+                  <button class="wl-credits-close" id="wl-credits-close" type="button" aria-label="Close credits">&times;</button>
+                </div>
+                <ul class="wl-credits-list" id="wl-credits-list"></ul>
+            </div>
+         </div>
 
         <!-- MENU SLIDER TRIGGER BUTTON -->
         <div class="menu-wrapper">
@@ -329,7 +346,7 @@
                     <div class="cp-photos" id="cp-photos"></div>
                     <div class="cp-credit">Photos: Wikipedia</div>
                 </div>
-</div>
+            </div>
 
             <!-- WEATHER -->
             <div class="cp-card cp-pill cp-weather">
@@ -348,14 +365,64 @@
         </div>
     </aside>
 
+    <!-- weather layers -->
+    <aside id="weather-panel" class="weather-panel" data-state="closed" aria-label="Weather layers">
+
+        <div class="wp-bar" id="wp-bar">
+            <div class="wp-bg"></div>
+            <svg class="wp-outline" viewBox="0 0 72 420" aria-hidden="true">
+                <path d="M72 0 C72 50 0 34 0 84 L0 336 C0 386 72 370 72 420"/>
+            </svg>
+
+            <div class="wp-content">
+                <button class="wp-toggle" id="wp-toggle" type="button" aria-label="Show weather layers" aria-expanded="false" title="Hide">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l6 6-6 6"/><path d="M12 6l6 6-6 6"/></svg>
+                </button>
+
+                <div class="wp-layers">
+                    <span class="wp-divider"></span>
+
+                    <button class="wp-layer" data-layer="precipitation" type="button" aria-label="Precipitation" title="Precipitation">
+                        <img src="icons/weather_map/umbrella.svg" class="wp-icon" alt="" draggable="false">
+                    </button>
+
+                    <button class="wp-layer" data-layer="wind" type="button" aria-label="Wind" title="Wind">
+                        <img src="icons/weather_map/wind.svg" class="wp-icon" alt="" draggable="false">
+                    </button>
+
+                    <button class="wp-layer" data-layer="temperature" type="button" aria-label="Temperature" title="Temperature">
+                        <img src="icons/weather_map/temperature.svg" class="wp-icon" alt="" draggable="false">
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- small tab  -->
+        <button class="wp-tab" id="wp-tab" type="button" aria-label="Show weather layers" title="Show" tabindex="-1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 6l6 6-6 6"/><path d="M12 6l6 6-6 6"/></svg>
+        </button>
+    </aside>
+
+    <!-- color scale -->
+    <div class="wl-legend" id="wl-legend" aria-hidden="true">
+        <div class="wl-legend-bar" id="wl-legend-bar"></div>
+        <div class="wl-legend-labels" id="wl-legend-labels"></div>
+    </div>
+
+    <!-- real time / mot real time -->
+    <div class="wl-footer" id="wl-footer">
+        <span class="wl-tag" id="wl-tag"><span id="wl-tag-text"></span></span>
+    </div>
+
     <!-- JS  -->
-    <script src="orbit-controls.js"></script> <!-- orbit controls to move -->
-    <script src="globe.js"></script>          <!-- globe -->
-    <script src="countries.js"></script>      <!-- country data -->
-    <script src="interaction.js"></script>    <!-- selection -->
-    <script src="country-panel.js"></script>  <!-- left country panel -->
-    <script src="landmarks.js"></script>      <!-- land marks -->
-    <script src="menu.js"></script>           <!-- menu -->
+    <script src="js/orbit-controls.js"></script> <!-- orbit controls to move -->
+    <script src="js/globe.js"></script>          <!-- globe -->
+    <script src="js/countries.js"></script>      <!-- country data -->
+    <script src="js/interaction.js"></script>    <!-- selection -->
+    <script src="js/country-panel.js"></script>  <!-- country panel -->
+    <script src="js/landmarks.js"></script>      <!-- land marks -->
+    <script src="js/menu.js"></script>           <!-- menu -->
+    <script src="js/weather.js"></script>        <!-- weather -->
 
 </body>
 </html>

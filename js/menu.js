@@ -15,9 +15,22 @@
     const dock = $("menu-actions");
     if (!nav || !menuBtn || !dock) return;
 
+    /* CREDITS */
+    const CREDITS = [
+        ["Three.js & OrbitControls", "MIT License", "https://threejs.org"],
+        ["Circle Flags By HatScripts", "MIT License", "https://github.com/HatScripts/circle-flags"],
+        ["Weather Icons By ErikFlowers", "SIL OFL 1.1", "https://github.com/erikflowers/weather-icons"],
+        ["Weather data", "Open-Meteo.com, CC BY 4.0", "https://open-meteo.com"],
+        ["Economic data", "World Bank, CC BY 4.0", "https://data.worldbank.org"],
+        ["Country data", "REST Countries", "https://restcountries.com"],
+        ["Borders", "Natural Earth, public domain", "https://www.naturalearthdata.com"],
+        ["Photos", "Wikimedia", "https://commons.wikimedia.org"],
+    ];
+
     const popups = {
         social:   { btn: $("social-btn"),   overlay: $("social-modal-overlay") },
-        settings: { btn: $("settings-btn"), overlay: $("settings-modal-overlay") }
+        settings: { btn: $("settings-btn"), overlay: $("settings-modal-overlay") },
+        credits:  { btn: $("credits-btn"),  overlay: $("wl-credits-overlay") }
     };
 
     let dockOpen = false;
@@ -29,6 +42,7 @@
         popup.overlay.classList.toggle("active", open);
         popup.btn.classList.toggle("is-open", open);
         popup.btn.setAttribute("aria-expanded", String(open));
+        if (name === "credits") popup.overlay.setAttribute("aria-hidden", String(!open));
     }
 
     function isPopupOpen(name) {
@@ -98,17 +112,84 @@
         }
     }
 
-    /* tapping outside*/
+    /* Credits */
+    function escapeHtml(text) {
+        return String(text).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
+    }
 
+    let creditsOverlay = $("wl-credits-overlay");
+    let creditsList = $("wl-credits-list");
+    let creditsClose = $("wl-credits-close");
+
+    if (!creditsOverlay) {
+        creditsOverlay = document.createElement("div");
+        creditsOverlay.id = "wl-credits-overlay";
+        creditsOverlay.className = "modal-overlay";
+        creditsOverlay.setAttribute("aria-hidden", "true");
+        creditsOverlay.innerHTML = `
+            <div class="modal-card">
+                <div class="modal-header">
+                    <h3>Credits</h3>
+                    <button class="modal-close" id="wl-credits-close" type="button" aria-label="Close credits">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <ul id="wl-credits-list" class="credits-list"></ul>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(creditsOverlay);
+        creditsList = $("wl-credits-list");
+        creditsClose = $("wl-credits-close");
+    }
+
+    if (creditsList) {
+        creditsList.innerHTML = CREDITS.map(item => {
+            const name = escapeHtml(item[0]);
+            const note = escapeHtml(item[1]);
+            const nameHtml = item[2]
+                ? '<a href="' + escapeHtml(item[2]) + '" target="_blank" rel="noopener noreferrer">' + name + "</a>"
+                : name;
+            return '<li><span class="wl-c-name">' + nameHtml + '</span><span class="wl-c-note">' + note + "</span></li>";
+        }).join("");
+    }
+
+    let creditsBtn = $("credits-btn");
+    if (!creditsBtn && dock) {
+        creditsBtn = document.createElement("button");
+        creditsBtn.className = "menu-action";
+        creditsBtn.id = "credits-btn";
+        creditsBtn.type = "button";
+        creditsBtn.setAttribute("aria-label", "Credits");
+        creditsBtn.title = "Credits";
+        creditsBtn.innerHTML =
+            '<svg class="menu-icon default-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 11v5.5"/><path d="M12 7.6v.01"/></svg>' +
+            '<svg class="menu-icon pressed-icon" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9" fill="currentColor" stroke="currentColor"/><path d="M12 11v5.5" stroke="#000"/><path d="M12 7.6v.01" stroke="#000"/></svg>';
+
+        const settingsWrap = dock.querySelector(".settings-btn-wrapper");
+        dock.insertBefore(creditsBtn, settingsWrap || null);
+        popups.credits.btn = creditsBtn;
+    }
+
+    if (creditsClose) {
+        creditsClose.addEventListener("click", () => setPopup("credits", false));
+    }
+    if (creditsOverlay) {
+        creditsOverlay.addEventListener("click", event => { if (event.target === creditsOverlay) setPopup("credits", false); });
+    }
+
+    /* tapping outside */
     document.addEventListener("pointerdown", event => {
         const target = event.target;
 
         if (!nav.contains(target)) {
+
+            if (isPopupOpen("credits") && creditsOverlay && creditsOverlay.contains(target) && !creditsOverlay.querySelector(".modal-card").contains(target)) {
+                setPopup("credits", false);
+            }
             if (dockOpen) setDock(false);
             return;
         }
 
-        // inside the menu: close a popup when the tap is outside that popup and its button
         Object.keys(popups).forEach(name => {
             const { btn, overlay } = popups[name];
             if (!isPopupOpen(name)) return;
@@ -119,7 +200,7 @@
 
     document.addEventListener("keydown", event => {
         if (event.key !== "Escape") return;
-        if (isPopupOpen("social") || isPopupOpen("settings")) closePopups();
+        if (isPopupOpen("social") || isPopupOpen("settings") || isPopupOpen("credits")) closePopups();
         else if (dockOpen) setDock(false);
     });
 
@@ -136,8 +217,7 @@
 
     const AMBIENT_FOLDER = "sounds/ambient/";
     const AMBIENT_FIRST = "ambient.mp3";
-    const AMBIENT_EXTRA = [
-    ];
+    const AMBIENT_EXTRA = [];
     const AMBIENT_AUTO_NUMBERED = true;
     const AMBIENT_AUTO_MAX = 10;
 

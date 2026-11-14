@@ -1,6 +1,7 @@
 // to use in Photos in country panel
 
 // hand picked and use ai
+// around 175 land marks
 
 const LANDMARKS = {
     "Afghanistan": ["Band-e Amir National Park", "Minaret of Jam", "Blue Mosque (Mazar-i-Sharif)", "Wakhan Corridor"],

@@ -1,7 +1,5 @@
 /* ================= COUNTRIES ================= */
 
-/* use AI in sum of the code */
-
 /* ================
    COUNTRY REGISTRY
    ================ */

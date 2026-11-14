@@ -1,7 +1,5 @@
 /* ================= COUNTRY PANEL (SMALL BAR + BIG MENU) ================= */
 
-/* i use AI in sum of the code */
-
 /*
     - Flags          flags
     - Weather/time   Meteo
