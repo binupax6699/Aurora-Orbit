@@ -1,9 +1,4 @@
-/* ================= MENU ================= */
-
-
-/* ===============
-   MENU CONTROLLER
-   =============== */
+// MENU CONTROLLER
 
 (function () {
     "use strict";
@@ -35,7 +30,7 @@
 
     let dockOpen = false;
 
-    /* popups*/
+    // popups
     function setPopup(name, open) {
         const popup = popups[name];
         if (!popup || !popup.btn || !popup.overlay) return;
@@ -64,7 +59,7 @@
         });
     });
 
-    /* dock*/
+    // dock
     function setDock(open) {
         dockOpen = open;
         nav.classList.toggle("menu-open", open);
@@ -79,7 +74,7 @@
         setDock(!dockOpen);
     });
 
-    /* dock buttons*/
+    // dock buttons
     const githubLink = $("github-link");
     if (githubLink) githubLink.addEventListener("click", () => setDock(false));
 
@@ -112,7 +107,7 @@
         }
     }
 
-    /* Credits */
+    // Credits
     function escapeHtml(text) {
         return String(text).replace(/[&<>"]/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[ch]));
     }
@@ -177,7 +172,7 @@
         creditsOverlay.addEventListener("click", event => { if (event.target === creditsOverlay) setPopup("credits", false); });
     }
 
-    /* tapping outside */
+    // tapping outside
     document.addEventListener("pointerdown", event => {
         const target = event.target;
 
@@ -208,12 +203,12 @@
 })();
 
 
-/* ================= SETTINGS ================ */
+// SETTINGS
 
 (function () {
     "use strict";
 
-    /* AMBIENT SOUND FILES*/
+    // AMBIENT SOUND FILES
 
     const AMBIENT_FOLDER = "sounds/ambient/";
     const AMBIENT_FIRST = "ambient.mp3";
@@ -221,7 +216,7 @@
     const AMBIENT_AUTO_NUMBERED = true;
     const AMBIENT_AUTO_MAX = 10;
 
-    /* SAVED SETTINGS */
+    // SAVED SETTINGS
     const STORAGE_KEY = "aurora-orbit-settings";
     const root = document.documentElement;
 
@@ -238,7 +233,7 @@
         try { localStorage.setItem(STORAGE_KEY, JSON.stringify(settings)); } catch (error) { /* ignore */ }
     }
 
-    /* ELEMENTS */
+    // ELEMENTS
     const $ = id => document.getElementById(id);
     const themeButtons = Array.from(document.querySelectorAll(".theme-option"));
     const starsToggle = $("toggle-stars");
@@ -246,7 +241,7 @@
     const volumeSlider = $("ambient-volume");
     const volumeValue = $("ambient-value");
 
-    /* THEM */
+    // THEM
     const DARK_BG = 0x000000;
     const LIGHT_BG = 0x161616;
     let themeTimer = null;
@@ -283,7 +278,7 @@
         });
     });
 
-    /* STARS & CLOUDS */
+    // STARS & CLOUDS
     function setToggle(button, on) {
         if (!button) return;
         button.setAttribute("aria-checked", String(on));
@@ -317,7 +312,7 @@
         });
     }
 
-    /* AMBIENT SOUND (ngl sum sound good) */
+    // AMBIENT SOUND (ngl sum sound good)
     let audio = null;
     let playlist = [];
     let trackIndex = 0;
@@ -441,7 +436,7 @@
         updateVolume();
     }
 
-    /* BUTTON SOUNDS */
+    // BUTTON SOUNDS
     (function () {
     "use strict";
 
@@ -521,7 +516,7 @@
     console.log("[Aurora Orbit] Button sounds ready");
 })();
 
-    /* START */
+    // START
     applyTheme(settings.theme, false);
     applyStars(settings.stars);
     applyClouds(settings.clouds);

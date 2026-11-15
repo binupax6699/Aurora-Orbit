@@ -1,8 +1,4 @@
-/* ================= GLOBE ================= */
-
-/* ==============
-   LOADING SCREEN
-   ============== */
+// LOADING SCREEN
 
 let currentDisplayPercent = 0;
 let targetPercent = 45; 
@@ -58,23 +54,18 @@ function checkAndDismissLoader() {
 
 startProgressAnimation();
 
-
-/* =======================
-   SCENE, CAMERA, RENDERER
-   ======================= */
-
-/* BASIC SCENE & CAMERA */
+// SCENE & CAMERA
 const scene = new THREE.Scene();
 const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.005, 100);
 camera.position.set(0, 0, 7.5);
 
-/* RENDERER */
+// RENDERER
 const canvas = document.querySelector("#webgl");
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: "high-performance", alpha: false });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
 
-/* GLOBE & INNER CORE */
+// GLOBE & INNER CORE
 const globeGroup = new THREE.Group();
 scene.add(globeGroup);
 
@@ -89,7 +80,7 @@ const occlusionSphereMat = new THREE.MeshBasicMaterial({ visible: false });
 const occlusionSphere = new THREE.Mesh(occlusionSphereGeo, occlusionSphereMat);
 globeGroup.add(occlusionSphere);
 
-/* UI REFERENCES */
+// UI REFERENCES
 const scaleStartEl = document.getElementById("scale-start");
 const scaleMidEl = document.getElementById("scale-mid");
 const scaleEndEl = document.getElementById("scale-end");
@@ -108,7 +99,7 @@ const countryInfoCode = document.getElementById("country-info-code");
 
 const toggleBordersButton = document.getElementById("toggle-borders-btn");
 
-/* CONSTANTS */
+// CONSTANTS
 const EARTH_RADIUS_KM = 6371;
 const KM_PER_UNIT = EARTH_RADIUS_KM / GLOBE_RADIUS_UNITS;
 const MIN_ALTITUDE_KM = 500;
@@ -128,11 +119,7 @@ const HIGH_RES_COUNTRY_URL = "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-
 const LOW_RES_BORDER_URL = "https://cdn.jsdelivr.net/gh/nvkelso/natural-earth-vector@master/geojson/ne_110m_admin_0_map_units.geojson";
 
 
-/* =======
-   HELPERS
-   ======= */
-
-/* GENERAL UTILS */
+// GENERAL UTILS
 function normalizeText(str) {
     return String(str).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[’']/g, "").replace(/[^a-z0-9]+/g, " ").trim().replace(/\s+/g, " ");
 }
@@ -146,7 +133,7 @@ function codeValue(value) {
     return (!code || code === "-99" || code === "NULL" || code === "N/A") ? null : code;
 }
 
-/* LAT/LNG CONVERSION */
+// LAT/LNG CONVERSION
 function latLngToVector3(lat, lng, radius) {
     const latRad = THREE.MathUtils.degToRad(lat);
     const lngRad = THREE.MathUtils.degToRad(lng);
@@ -167,7 +154,7 @@ function minimalLongitudeSpan(minLng, maxLng) {
     return difference > 180 ? 360 - difference : difference;
 }
 
-/* CIRCLE TEXTURE */
+// CIRCLE TEXTURE
 function createCircleTexture() {
     const c = document.createElement("canvas");
     c.width = 64;
@@ -184,12 +171,7 @@ function createCircleTexture() {
 
 const dotTexture = createCircleTexture();
 
-
-/* =====
-   GLOBE
-   ===== */
-
-/* POINT MATERIAL HELPERS */
+// POINT MATERIAL HELPERS
 function applyScreenCullingAndClamping(material) {
     material.onBeforeCompile = shader => {
         shader.vertexShader = shader.vertexShader.replace(
@@ -208,7 +190,7 @@ function applyScreenCullingAndClamping(material) {
     material.userData.originalColor = material.color.clone();
 }
 
-/* EARTH DOT GLOBE */
+// EARTH DOT GLOBE
 
 let globeLOD = null;
 const globePointMaterials = [];
@@ -324,7 +306,7 @@ earthImage.onload = () => {
     checkAndDismissLoader();
 };
 
-/* CLOUD */
+// CLOUD
 
 const cloudGroup = new THREE.Group();
 globeGroup.add(cloudGroup);
@@ -360,7 +342,7 @@ textureLoader.load('./globe/earth_clouds_1024.png',
     }
 );
 
-/* CONTROLS */
+// CONTROLS
 
 const controls = new THREE.OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
@@ -392,12 +374,7 @@ const FLIGHT_DURATION = 850;
 controls.addEventListener("start", () => { userInteracting = true; });
 controls.addEventListener("end", () => { userInteracting = false; });
 
-
-/* ======================
-   STARS + SHOOTING STARS
-   ====================== */
-
-/* STAR SYSTEM  */
+// STAR SYSTEM
 
 const starSystemGroup = new THREE.Group();
 scene.add(starSystemGroup);
@@ -443,7 +420,7 @@ starLayersConfig.forEach(config => {
     starSystemGroup.add(starPoints);
 });
 
-/* SHOOTING STARS SETUP */
+// SHOOTING STARS SETUP //
 
 const shootingStarGeo = new THREE.BufferGeometry();
 const trailLength = 10;
@@ -521,11 +498,7 @@ function updateShootingStars() {
 }
 
 
-/* =================
-   PER-FRAME UPDATES 
-   ================= */
-
-/* SCALE BAR */
+// SCALE BAR
 
 let lastDistanceCheck = 0;
 
@@ -573,7 +546,7 @@ function updateScaleBarUI(distance) {
     }
 }
 
-/* AUTO ROTATION & ORBIT SPEED BASED ON ZOOM */
+// AUTO ROTATION & ORBIT SPEED BASED ON ZOOM
 
 function updateOrbitSpeedByZoom(distance) {
     const factor = Math.max(0, Math.min(1, (distance - controls.minDistance) / (controls.maxDistance - controls.minDistance)));
@@ -587,7 +560,7 @@ function updateGlobeRotation(distance) {
     globeGroup.rotation.y += dynamicSpeed;
 }
 
-/* SELECTED PULSE */
+// SELECTED PULSE
 
 function updateSelectedPulse(now) {
     if (!selectedPulseMaterial) return;
@@ -601,12 +574,7 @@ function updateSelectedPulse(now) {
     selectedPulseMaterial.opacity = 0.5 + (pulse * 0.4);
 }
 
-
-/* ======================
-   ANIMATION LOOP + START
-   ====================== */
-
-/* ANIMATION LOOP */
+// ANIMATION LOOP
 function animate(now) {
     requestAnimationFrame(animate);
 
@@ -646,14 +614,14 @@ function animate(now) {
     renderer.render(scene, camera);
 }
 
-/* RESIZE HANDLER */
+// RESIZE HANDLER
 window.addEventListener("resize", () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-/* INITIALIZE */
+// INITIALIZE
 document.addEventListener("DOMContentLoaded", () => {
     loadGlobalCountryData();
     animate(performance.now());

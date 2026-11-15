@@ -1,10 +1,4 @@
-/* ================= INTERACTION ================= */
-
-/* =======
-   BORDERS
-   ======= */
-
-/* BORDER GEO */
+// BORDER GEO
 
 function appendFeatureBorderPositions(feature, positions, radius, steps) {
     const polygons = getFeaturePolygons(feature);
@@ -61,14 +55,14 @@ function buildCombinedBorderGeometry(features, radius, steps) {
     return geometry;
 }
 
-/* BORDER MATERIAL */
+// BORDER MATERIAL
 function makeBorderMaterial(opacity) {
     return new THREE.LineBasicMaterial({
         color: 0xffffff, transparent: true, opacity, blending: THREE.AdditiveBlending, depthWrite: false, depthTest: true
     });
 }
 
-/* SELECTED COUNTRY HIGHLIGHT */
+// SELECTED COUNTRY HIGHLIGHT
 function clearSelectedHighlight() {
     if (!selectedHighlightGroup) return;
     globeGroup.remove(selectedHighlightGroup);
@@ -117,7 +111,7 @@ function buildSelectedHighlight(entity) {
     selectedHighlightGroup.add(pulse);
 }
 
-/* ALL BORDERS - LOW RESOLUTION */
+// ALL BORDERS - LOW RESOLUTION
 
 function buildAllBorders() {
     if (allBordersGroup) return;
@@ -138,7 +132,7 @@ function buildAllBorders() {
     globeGroup.add(allBordersGroup);
 }
 
-/* ORDER TOGGLE */
+// ORDER TOGGLE
 
 function toggleAllCountryBorders() {
     showAllBorders = !showAllBorders;
@@ -153,12 +147,7 @@ function toggleAllCountryBorders() {
     }
 }
 
-
-/* ==================
-   SELECTION + CAMERA
-   ================== */
-
-/* CAMERA */
+// CAMERA
 
 function getCameraBounds(entity) {
     if (entity.iso3 === "FRA") {
@@ -219,7 +208,7 @@ function flyToCountry(entity) {
     isFlying = true;
 }
 
-/* CAMERA FLIGHT */
+// CAMERA FLIGHT
 
 function handleCameraFlight(now) {
     if (!isFlying || !targetCameraPosition || !flightStartPosition) return;
@@ -238,7 +227,7 @@ function handleCameraFlight(now) {
     }
 }
 
-/* COUNTRY SELECTION */
+// COUNTRY SELECTION
 
 function selectCountry(entity, fly = true) {
     if (!entity) return;
@@ -268,7 +257,7 @@ function selectCountry(entity, fly = true) {
     if (window.CountryPanel) window.CountryPanel.open(entity);
 }
 
-/* CLEAR SELECTION */
+// CLEAR SELECTION
 
 function clearCountrySelection() {
     selectedCountry = null;
@@ -296,7 +285,7 @@ function clearCountrySelectionAndResetZoom() {
 }
 
 
-/* BACKGROUND CLICK CONTROLS */
+// BACKGROUND CLICK CONTROLS
 
 let pointerDownX = 0;
 let pointerDownY = 0;
@@ -337,11 +326,7 @@ canvas.addEventListener("pointerup", event => {
 });
 
 
-/* ======
-   SEARCH
-   ====== */
-
-/* SEARCH */
+// SEARCH
 
 let searchHighlightedIndex = -1;
 
@@ -419,7 +404,7 @@ function renderSearchResults(query) {
     searchResults.classList.add("active");
 }
 
-/* SEARCH INPUT */
+// SEARCH INPUT
 
 if (searchInput) {
     searchInput.addEventListener("input", event => {
@@ -472,7 +457,7 @@ if (searchInput) {
     });
 }
 
-/* SEARCH BUTTON */
+// SEARCH BUTTON
 
 if (searchButton) {
     searchButton.addEventListener("click", () => {
@@ -493,7 +478,7 @@ document.addEventListener("pointerdown", event => {
     }
 }, true);
 
-/* SEARCH CLEAR */
+// SEARCH CLEAR
 
 (function () {
     const clearInput = document.getElementById("country-search-input");

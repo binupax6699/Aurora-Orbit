@@ -1,10 +1,6 @@
-/* ================= COUNTRIES ================= */
+// COUNTRY REGISTRY
 
-/* ================
-   COUNTRY REGISTRY
-   ================ */
-
-/* COUNTRY REGISTRY  197*/
+// COUNTRY REGISTRY 197
 
 const COUNTRY_TABLE = `
 Afghanistan|AF|AFG
@@ -226,7 +222,7 @@ const AURORA_COUNTRIES = COUNTRY_TABLE
         element: null
     }));
 
-/* ERRITORIES */
+// ERRITORIES
 
 const TERRITORY_REGISTRY = [
     { name: "French Guiana", iso2: "GF", iso3: "GUF", type: "territory" },
@@ -235,7 +231,7 @@ const TERRITORY_REGISTRY = [
     { name: "Antarctica", iso2: "AQ", iso3: "ATA", type: "territory" }
 ];
 
-/* NAME ALIASES */
+// NAME ALIASES
 
 const NAME_ALIASES = new Map([
     ["russian federation", "russia"],
@@ -272,14 +268,14 @@ function canonicalCountryKey(name) {
     return NAME_ALIASES.get(normalized) || normalized;
 }
 
-/* LABEL OVERRIDES */
+// LABEL OVERRIDES
 
 const LABEL_OVERRIDES = {
     RUS: { lat: 61.0, lng: 100.0 },
     FRA: { lat: 46.5, lng: 2.2 }
 };
 
-/* MAP DATA STATE */
+// MAP DATA STATE
 
 let HIGH_RES_FEATURES = [];
 let LOW_RES_FEATURES = [];
@@ -297,13 +293,7 @@ const COUNTRY_BY_NAME = new Map();
 const COUNTRY_BY_ID = new Map();
 const COUNTRY_BY_ISO3 = new Map();
 
-
-/* ========
-   GEO JSON
-   ======== */
-
-
-/* GEO JSON INDEX */
+// GEO JSON INDEX
 
 function getFeatureISO3(feature) {
     const props = feature?.properties || {};
@@ -329,7 +319,7 @@ function indexFeature(feature, isoMap, nameMap) {
     }
 }
 
-/* GAY JSON POLY (GEO LOL)*/
+// GAY JSON POLY (GEO LOL)
 
 function getFeaturePolygons(feature) {
     if (!feature || !feature.geometry) return [];
@@ -349,7 +339,7 @@ function forEachRing(feature, callback) {
     }
 }
 
-/* FEATURE BOUNDS */
+// FEATURE BOUNDS
 
 function getFeatureBounds(feature) {
     let minLat = Infinity, maxLat = -Infinity;
@@ -388,7 +378,7 @@ function getEntityBounds(entity) {
     return minLat === Infinity ? null : { minLat, maxLat, minLng, maxLng };
 }
 
-/* GEOMETRIC CENTER */
+// GEOMETRIC CENTER 
 
 function geometryCenter(feature) {
     const outerRings = [];
@@ -446,7 +436,7 @@ function getEntityCenter(entity) {
     return null;
 }
 
-/* FIND HIGH RES */
+// FIND HIGH RES
 function findFeaturesForEntity(entity) {
     const result = [];
     result.push(...(HIGH_BY_ISO3.get(entity.iso3) || []));
@@ -458,7 +448,7 @@ function findFeaturesForEntity(entity) {
     return Array.from(new Set(result));
 }
 
-/* ENTITY PREPARA */
+// ENTITY PREPARA
 
 function prepareEntity(entity) {
     entity.features = findFeaturesForEntity(entity);
@@ -476,7 +466,7 @@ function prepareEntity(entity) {
 }
 
 
-/* POINT IN POLY */
+// POINT IN POLY
 
 function unwrapLongitude(longitude, reference) {
     let value = longitude;
@@ -553,12 +543,7 @@ function getEntityAreaScore(entity) {
     return latSpan * lonSpan * Math.max(0.01, Math.cos(midLat));
 }
 
-/* =====
-   LABEL
-   ===== */
-
-
-/* COUNTRY LESABION (LABEL) */
+// COUNTRY LESABION (LABEL)
 
 function createCountryTag(entity) {
     if (!countryTagsContainer) return;
@@ -583,7 +568,7 @@ function createCountryTag(entity) {
     tag.style.pointerEvents = "none";
 }
 
-/* WORLD POSITION */
+// WORLD POSITION
 
 function getCountryWorldPosition(entity) {
     if (!entity || !entity.position) return null;
@@ -591,7 +576,7 @@ function getCountryWorldPosition(entity) {
     return entity.position.clone().applyMatrix4(globeGroup.matrixWorld);
 }
 
-/* CAMERA */
+// CAMERA
 
 function isCountryFacingCamera(entity) {
     const worldPos = getCountryWorldPosition(entity);
@@ -603,7 +588,7 @@ function isCountryFacingCamera(entity) {
     return surfaceNormal.dot(cameraDirection) < -0.15;
 }
 
-/* LABELS */
+// LABELS
 
 const MAX_VISIBLE_COUNTRY_LABELS = 15;
 const labelRaycaster = new THREE.Raycaster();
@@ -730,12 +715,7 @@ function updateCountryTags() {
     visibleLabelCountries = nextSet;
 }
 
-
-/* =========
-   MAP DATA
-   ========= */
-
-/* LOAD COUNTRY */
+// LOAD COUNTRY
 
 async function loadGlobalCountryData() {
     try {

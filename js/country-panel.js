@@ -1,5 +1,3 @@
-/* ================= COUNTRY PANEL (SMALL BAR + BIG MENU) ================= */
-
 /*
     - Flags          flags
     - Weather/time   Meteo
@@ -74,7 +72,7 @@
     const CONTINENT_BY_ISO2 = {};
     Object.entries(CONTINENTS).forEach(([name, codes]) => codes.split(" ").forEach(code => { CONTINENT_BY_ISO2[code] = name; }));
 
-    /* ELEMENT REFERENCES */
+    // ELEMENT REFERENCES
     const $ = id => document.getElementById(id);
     const ui = {
         miniFlag: $("cp-mini-flag"), miniCode: $("cp-mini-code"), miniTime: $("cp-mini-time"),
@@ -88,7 +86,7 @@
         wIcon: $("cp-wicon"), wTemp: $("cp-wtemp"), wCity: $("cp-wcity"), wText: $("cp-wtext"), wHigh: $("cp-whigh"), wLow: $("cp-wlow")
     };
 
-    /* STATE */
+    // STATE
     let state = "hidden";          // hidden | mini | big
     let lastMode = "mini";         // remembers what the user left open
     let current = null;            // selected entity
@@ -97,7 +95,7 @@
     const clock = { tz: null, timeFmt: null, dateFmt: null, timer: null, lastKey: "" };
     const cache = new Map();
 
-    /* HELPERS */
+    // HELPERS
     function memo(key, factory) {
         if (!cache.has(key)) {
             const promise = factory().catch(error => { cache.delete(key); throw error; });
@@ -160,7 +158,7 @@
         return WIKI_TITLE_OVERRIDES[entity.name] || entity.name;
     }
 
-    /* PANEL STATE (hidden / mini / big) */
+    // PANEL STATE (hidden / mini / big)
     function setState(next) {
         if (next === state) return;
 
@@ -181,7 +179,7 @@
         panel.setAttribute("aria-hidden", String(next === "hidden"));
     }
 
-    /* CLOCK (Time) */
+    // CLOCK (Time)
     function setTimezone(tz) {
         clock.tz = null;
         clock.lastKey = "";
@@ -234,7 +232,7 @@
         clock.timer = null;
     }
 
-    /* DATA LOADERS */
+    // DATA LOADERS
     async function fetchWorldBankLatest(iso3, indicator) {
         const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&mrnev=1`);
         const row = data && data[1] && data[1][0];
@@ -377,7 +375,7 @@
     return [...landmarks, ...landscapes];
 }
 
-    /* WEATHER */
+    // WEATHER
     function weatherInfo(code, isDay) {
         const entry = WEATHER_CODES[code] || ["Unknown", "cloud", "cloud"];
         return { text: entry[0], icon: `${WEATHER_ICON_PATH}wi-${isDay ? entry[1] : entry[2]}.svg` };
@@ -409,7 +407,7 @@
         setText(ui.wLow, "L:--");
     }
 
-    /* GDP CHART */
+    // GDP CHART
     function renderGdp(entity, result) {
         const series = result.gdp;
         ui.chart.innerHTML = "";
@@ -497,7 +495,7 @@
         }));
     }
 
-    /* PHOTOS */
+    // PHOTOS
     function showPhotoSkeleton() {
         ui.photos.className = "cp-photos";
         ui.photos.innerHTML = '<div class="cp-photo"></div>'.repeat(4);
@@ -530,7 +528,7 @@
         });
     }
 
-    /* LOAD A COUNTRY */
+    // LOAD A COUNTRY
     function resetContent(entity) {
         const code = (entity.iso2 || "").toUpperCase();
         const flagUrl = `${FLAG_BASE}${(entity.iso2 || "").toLowerCase()}.svg`;
@@ -615,7 +613,7 @@
         });
     }
 
-    /* PUBLIC API */
+    // PUBLIC API
     function open(entity) {
         if (!entity) return;
         if (current === entity && state !== "hidden") return;
@@ -637,7 +635,7 @@
 
     window.CountryPanel = { open, close };
 
-    /* EVENTS */
+    // EVENTS
     if (ui.expandBtn) ui.expandBtn.addEventListener("click", () => setState("big"));
     if (ui.collapseBtn) ui.collapseBtn.addEventListener("click", () => setState("mini"));
 
