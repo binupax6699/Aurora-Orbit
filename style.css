@@ -924,7 +924,7 @@ a {
     padding: 14px 16px 16px;
     border-radius: var(--radius-card);
     transform: translateY(18px) scale(0.92);
-    transform-origin: bottom right;
+    transform-origin: bottom center;
     transition: transform var(--time-slow) var(--ease), border-color var(--time-base) ease;
 }
 
