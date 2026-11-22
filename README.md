@@ -23,9 +23,8 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 ## Screenshots
 
 <table>
-<td><img src="images/0001.png" width="450"></td>
-<td><img src="images/0002.png" width="450"></td>
-<td><img src="images/0003.png" width="450"></td>
+<td><img src="images/0002.png" </td>
+<td><img src="images/0003.png" </td>
 </table>
 
 ## UI info, Buttons and Staring 
