@@ -49,6 +49,7 @@ This is my fest web app that I make and I use lot of Ai for this.
 To learn and to see how it can done, so in sum parts I use Ai a lot and sum parts written by me that I learn from Ai and sum tutorials.
 And I use Ai for cool fetchers to have in this web app.
 And I need a working thing that any one will love
+lot of AI was use for to make the APIs, make it optimize, work great and and importantly to learn 
 
 <img src="images/005.png">
 
