@@ -6,18 +6,19 @@
 
 ## Project info
 this is a web app to exploring countries and weather and much more info. 
-this is my first web app project so there can be some issues, so feel free to give feedback improve this even more.
+this is my first web app project so there can be some issues, so feel free to give feedback to improve this even more.
 
 ## Supported 
-this web app is Supported  for every devices and it works soomthly
 
 <img src="images/001.png">
+
+this web app is Supported  for every devices and it works soomthly
 
 ## Weather
 
 <img src="images/004.png">
 
-this is real time so I use API for the Wind and Precipitation and also if its offline there will be an non real for all 3
+this is real time so I use API for the Wind and Precipitation and also if its offline there will be an none real for all 3
 
 ## Screenshots
 
@@ -27,12 +28,15 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 <td><img src="images/0003.png" width="450"></td>
 </table>
 
-## UI info and Buttons
+## UI info, Buttons and Staring 
 
 <td><img src="images/002.png"></td>
 
-click a country or search up using the search bar.
-there is a menu button and you can change the settings and sum more stuff
+1.Click a country or search up using the search bar.
+
+2.After you get did there will be see the mine card it’s the small hub about the selected country, you can expand it using the arrow button to see more info.
+
+3.menu button to change the settings and sum more stuff
 
 ## Credits
 - **Three.js** - MIT License [threejs.org](https://threejs.org)
@@ -46,10 +50,10 @@ there is a menu button and you can change the settings and sum more stuff
 
 ## AI 
 This is my fest web app that I make and I use lot of Ai for this.
-To learn and to see how it can done, so in sum parts I use Ai a lot and sum parts written by me that I learn from Ai and sum tutorials.
+To learn and to see how it can done, so in sum parts I use Ai and sum parts written by me that I learn from Ai and sum tutorials.
 And I use Ai for cool fetchers to have in this web app.
-And I need a working thing that any one will love
-lot of AI was use for to make the APIs, make it optimize, work great and and importantly to learn 
+And I need a working thing that any one will love.
+lot of AI was use for to make the APIs, make it optimize, work great and importantly to learn 
 
 <img src="images/005.png">
 
