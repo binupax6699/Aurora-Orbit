@@ -1,8 +1,8 @@
-# Aurora-Orbit
+# Aurora Orbit
 
 <img src="images/003.png">
 
-**Visit Aurora-Orbit** - [**Aurora-Orbit**](https://binupax6699.github.io/Aurora-Orbit/)
+**Visit Aurora Orbit** - [**Aurora Orbit**](https://binupax6699.github.io/Aurora-Orbit/)
 
 ## Project info
 this is a web app to exploring countries and weather and much more info. 
