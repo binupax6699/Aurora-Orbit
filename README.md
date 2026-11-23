@@ -51,6 +51,7 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 1. sum time it will tack longer to load the assets and images.
 2. the APIs can get slow or not working.
 3. APIs can be blocked sum times.
+4. The Data not available 
 
 ### Fixes that can be help for this problems 
 
