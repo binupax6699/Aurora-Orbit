@@ -48,13 +48,13 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 - **Photos** by Wikimedia Commons [commons.wikimedia.org](https://commons.wikimedia.org)
 
 
-## Sum small stuff there can be that I can't 
-1. sum time it will tack longer to load the assets and images.
-2. the APIs can get slow or not working.
-3. APIs can be blocked sum times.
+## Sum small stuff there can be that I can't fix
+1.sum time it will tack longer to load the assets and images.
+2.the APIs can get slow or not working.
+3.APIs can be blocked sum times.
 
 Wight a few sec, try aging or reload it to fix those problems.
-I cant fix those few problems because its not in my said.
+I can not fix those few problems because its not in my said.
 
 ## AI 
 This is my fest web app that I make and I use lot of Ai for this.
