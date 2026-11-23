@@ -15,6 +15,11 @@
     const FLAG_BASE = "https://cdn.jsdelivr.net/gh/HatScripts/circle-flags/flags/";
     const WEATHER_ICON_PATH = "icons/weather/";
     const WEATHER_CACHE_MS = 10 * 60 * 1000;
+    const STORE_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // basics, GDP and photos rarely change
+    const STORE_PREFIX = "ao:";
+    const TIMEOUT_MS = 8000;                         // give up on one slow request
+    const SLOW_NOTE_MS = 4000;                       // show the traffic note after this
+    const PHOTO_WIDTH = 640;
     const SWAP_MS = 900;
 
     const WIKI_TITLE_OVERRIDES = {
@@ -72,6 +77,9 @@
     const CONTINENT_BY_ISO2 = {};
     Object.entries(CONTINENTS).forEach(([name, codes]) => codes.split(" ").forEach(code => { CONTINENT_BY_ISO2[code] = name; }));
 
+    // photo filter, whole words only so "Cardiff" or "Warsaw" are not blocked
+    const BAD_PHOTO = /\b(flag|map|coat|emblem|seal|locator|logo|icon|symbol|diagram|signature|stamp|banknote|coin|portrait|chart|graph|painting|poster|protest|army|military|police|soldier|war|refugee|camp|meeting|treaty|president|minister|election|drawing|interior|crowd|people|train|bus|car)\b/i;
+
     // ELEMENT REFERENCES
     const $ = id => document.getElementById(id);
     const ui = {
@@ -91,23 +99,82 @@
     let lastMode = "mini";         // remembers what the user left open
     let current = null;            // selected entity
     let requestToken = 0;          // ignores answers from a previously selected country
+    let abortCtrl = null;          // cancels requests of the previous country
     let swapTimer = null;
     const clock = { tz: null, timeFmt: null, dateFmt: null, timer: null, lastKey: "" };
     const cache = new Map();
+    const weatherCache = new Map();
+
+    // open connections early so the first request is faster
+    ["https://restcountries.com", "https://api.worldbank.org", "https://api.open-meteo.com", "https://commons.wikimedia.org"]
+        .forEach(href => addPreconnect(href, true));
+    ["https://upload.wikimedia.org", "https://cdn.jsdelivr.net"]
+        .forEach(href => addPreconnect(href, false));
+
+    function addPreconnect(href, cors) {
+        const link = document.createElement("link");
+        link.rel = "preconnect";
+        link.href = href;
+        if (cors) link.crossOrigin = "anonymous";
+        document.head.appendChild(link);
+    }
 
     // HELPERS
     function memo(key, factory) {
         if (!cache.has(key)) {
-            const promise = factory().catch(error => { cache.delete(key); throw error; });
+            const promise = factory().catch(error => {
+                if (cache.get(key) === promise) cache.delete(key);
+                throw error;
+            });
             cache.set(key, promise);
         }
         return cache.get(key);
     }
 
-    async function getJSON(url) {
-        const response = await fetch(url);
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
-        return response.json();
+    // memory + localStorage cache, so a country seen before opens instantly
+    function cached(key, factory, isGood) {
+        const promise = memo(key, async () => {
+            const hit = readStore(key);
+            if (hit) return hit;
+            const value = await factory();
+            if (isGood(value)) writeStore(key, value);
+            return value;
+        });
+        promise.then(value => {
+            if (!isGood(value) && cache.get(key) === promise) cache.delete(key);
+        }).catch(() => {});
+        return promise;
+    }
+
+    function readStore(key) {
+        try {
+            const raw = localStorage.getItem(STORE_PREFIX + key);
+            if (!raw) return null;
+            const item = JSON.parse(raw);
+            return Date.now() - item.t < STORE_TTL_MS ? item.v : null;
+        } catch (error) { return null; }
+    }
+
+    function writeStore(key, value) {
+        try { localStorage.setItem(STORE_PREFIX + key, JSON.stringify({ t: Date.now(), v: value })); } catch (error) { /* full or blocked */ }
+    }
+
+    async function getJSON(url, signal, ms = TIMEOUT_MS) {
+        const ctrl = new AbortController();
+        const stop = () => ctrl.abort();
+        if (signal) {
+            if (signal.aborted) stop();
+            else signal.addEventListener("abort", stop, { once: true });
+        }
+        const timer = setTimeout(stop, ms);
+        try {
+            const response = await fetch(url, { signal: ctrl.signal });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return await response.json();
+        } finally {
+            clearTimeout(timer);
+            if (signal) signal.removeEventListener("abort", stop);
+        }
     }
 
     function setText(node, text) {
@@ -156,6 +223,10 @@
 
     function wikiTitle(entity) {
         return WIKI_TITLE_OVERRIDES[entity.name] || entity.name;
+    }
+
+    function entityKey(entity) {
+        return entity.iso2 || entity.iso3 || entity.name;
     }
 
     // PANEL STATE (hidden / mini / big)
@@ -233,16 +304,17 @@
     }
 
     // DATA LOADERS
-    async function fetchWorldBankLatest(iso3, indicator) {
-        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&mrnev=1`);
+    async function fetchWorldBankLatest(iso3, indicator, signal) {
+        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&mrnev=1`, signal);
         const row = data && data[1] && data[1][0];
         return row && row.value != null ? row.value : null;
     }
 
-    async function fetchBasics(entity) {
+    async function fetchBasics(entity, signal) {
         try {
             const fields = "capital,capitalInfo,region,area,population,latlng";
-            const data = await getJSON(`https://restcountries.com/v3.1/alpha/${entity.iso2}?fields=${fields}`);
+            // short timeout, this API is the slowest one, World Bank is the backup
+            const data = await getJSON(`https://restcountries.com/v3.1/alpha/${entity.iso2}?fields=${fields}`, signal, 5000);
             const c = Array.isArray(data) ? data[0] : data;
             const capitalLatLng = (c.capitalInfo && c.capitalInfo.latlng) || c.latlng || [];
             return {
@@ -254,51 +326,57 @@
                 population: c.population
             };
         } catch (error) {
+            if (signal && signal.aborted) throw error;
             console.warn("[Aurora Orbit] REST Countries failed, trying World Bank:", error.message);
         }
 
-        const basics = {};
-        try {
-            const data = await getJSON(`https://api.worldbank.org/v2/country/${entity.iso3}?format=json`);
-            const c = data && data[1] && data[1][0];
-            if (c) {
-                basics.region = c.region && c.region.value !== "Aggregates" ? c.region.value : "";
-                basics.capital = c.capitalCity || "";
-                basics.lat = parseFloat(c.latitude);
-                basics.lng = parseFloat(c.longitude);
-            }
-        } catch (error) { /* ignore */ }
+        // all three run at the same time
+        const [info, population, area] = await Promise.all([
+            getJSON(`https://api.worldbank.org/v2/country/${entity.iso3}?format=json`, signal).catch(() => null),
+            fetchWorldBankLatest(entity.iso3, "SP.POP.TOTL", signal).catch(() => null),
+            fetchWorldBankLatest(entity.iso3, "AG.SRF.TOTL.K2", signal).catch(() => null)
+        ]);
+        if (signal && signal.aborted) throw new Error("aborted");
 
-        try { basics.population = await fetchWorldBankLatest(entity.iso3, "SP.POP.TOTL"); } catch (error) { /* ignore */ }
-        try { basics.area = await fetchWorldBankLatest(entity.iso3, "AG.SRF.TOTL.K2"); } catch (error) { /* ignore */ }
+        const basics = { population, area };
+        const c = info && info[1] && info[1][0];
+        if (c) {
+            basics.region = c.region && c.region.value !== "Aggregates" ? c.region.value : "";
+            basics.capital = c.capitalCity || "";
+            basics.lat = parseFloat(c.latitude);
+            basics.lng = parseFloat(c.longitude);
+        }
         return basics;
     }
 
-    async function fetchWeather(lat, lng) {
-        const key = `weather:${lat.toFixed(2)},${lng.toFixed(2)}`;
-        const hit = cache.get(key);
-        if (hit && Date.now() - hit.time < WEATHER_CACHE_MS) return hit.value;
+    function fetchWeather(lat, lng, signal) {
+        const key = `${lat.toFixed(2)},${lng.toFixed(2)}`;
+        const hit = weatherCache.get(key);
+        if (hit && Date.now() - hit.time < WEATHER_CACHE_MS) return hit.promise;
 
         const url = "https://api.open-meteo.com/v1/forecast" +
             `?latitude=${lat}&longitude=${lng}` +
             "&current=temperature_2m,weather_code,is_day" +
             "&daily=temperature_2m_max,temperature_2m_min" +
             "&timezone=auto&forecast_days=1";
-        const data = await getJSON(url);
-        const value = {
+        const promise = getJSON(url, signal).then(data => ({
             temp: data.current.temperature_2m,
             code: data.current.weather_code,
             isDay: data.current.is_day === 1,
             high: data.daily.temperature_2m_max[0],
             low: data.daily.temperature_2m_min[0],
             timezone: data.timezone
-        };
-        cache.set(key, { time: Date.now(), value });
-        return value;
+        }));
+        weatherCache.set(key, { time: Date.now(), promise });
+        promise.catch(() => {
+            const entry = weatherCache.get(key);
+            if (entry && entry.promise === promise) weatherCache.delete(key);
+        });
+        return promise;
     }
 
-    async function fetchWorldBankSeries(iso3, indicator) {
-        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&per_page=80&date=2000:2026`);
+    async function fetchWorldBankSeries(iso3, indicator, signal) {
+        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&per_page=40&date=2000:2026`, signal);
         const rows = (data && data[1]) || [];
         return rows
             .filter(row => row.value != null)
@@ -306,25 +384,38 @@
             .sort((a, b) => a.year - b.year);
     }
 
-    async function fetchGdp(entity) {
+    // returns plain arrays so it can be saved in localStorage
+    async function fetchGdp(entity, signal) {
         const [gdp, capita] = await Promise.all([
-            fetchWorldBankSeries(entity.iso3, "NY.GDP.MKTP.CD"),
-            fetchWorldBankSeries(entity.iso3, "NY.GDP.PCAP.CD").catch(() => [])
+            fetchWorldBankSeries(entity.iso3, "NY.GDP.MKTP.CD", signal),
+            fetchWorldBankSeries(entity.iso3, "NY.GDP.PCAP.CD", signal).catch(() => [])
         ]);
-        const capitaByYear = new Map(capita.map(p => [p.year, p.value]));
-        return { gdp, capitaByYear };
+        if (signal && signal.aborted) throw new Error("aborted");
+        return { gdp, capita };
     }
 
-    async function fetchPhotos(entity, capital) {
-    const country = wikiTitle(entity);
-    const bad = /flag|map|coat|emblem|seal|locator|logo|icon|symbol|diagram|signature|stamp|banknote|coin|portrait|chart|graph|painting|poster|protest|army|military|police|soldier|war|refugee|camp|meeting|treaty|president|minister|election|drawing|interior|crowd|people|train|bus|car/i;
+    function getBasics(entity, signal) {
+        return cached(`basics:${entityKey(entity)}`, () => fetchBasics(entity, signal), v => !!(v && (v.capital || v.population)));
+    }
 
-    async function search(q) {
+    function getGdp(entity, signal) {
+        return cached(`gdp:${entityKey(entity)}`, () => fetchGdp(entity, signal), v => !!(v && v.gdp.length > 1));
+    }
+
+    // PHOTOS
+    function photoQueries(entity) {
+        const country = wikiTitle(entity);
+        const auto = [`${country} famous landmark`, `${country} historic site`, `${country} landscape`, `${country} national park`];
+        const manual = typeof LANDMARKS !== "undefined" ? (LANDMARKS[entity.name] || LANDMARKS[country]) : null;
+        return manual ? [...manual, ...auto].slice(0, 4) : auto;
+    }
+
+    async function searchPhotos(q, signal) {
         const url = "https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*" +
-            `&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${encodeURIComponent(q + " filetype:bitmap")}` +
-            "&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=640";
+            `&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=${encodeURIComponent(q + " filetype:bitmap")}` +
+            `&prop=imageinfo&iiprop=url|size|mime&iiurlwidth=${PHOTO_WIDTH}`;
         try {
-            const data = await getJSON(url);
+            const data = await getJSON(url, signal);
             const pages = Object.values((data.query && data.query.pages) || {});
             return pages
                 .sort((a, b) => (a.index || 0) - (b.index || 0))
@@ -332,48 +423,114 @@
                     const info = page.imageinfo && page.imageinfo[0];
                     if (!info || info.mime !== "image/jpeg" || !info.thumburl) return false;
                     const ratio = info.width / info.height;
-                    return info.width >= 1200 && ratio >= 1.2 && ratio <= 2 && !bad.test(page.title);
+                    return info.width >= 1200 && ratio >= 1.2 && ratio <= 2 && !BAD_PHOTO.test(page.title);
                 })
                 .map(page => ({
                     url: page.imageinfo[0].thumburl,
                     title: page.title.replace(/^File:/, "").replace(/\.[a-z]+$/i, "")
                 }));
-        } catch (e) {
-            return [];
+        } catch (error) {
+            return [];   // one failed search must not break the others
         }
     }
 
-    function pick(groups, count, seen) {
-        const out = [];
-        for (let round = 0; round < 3 && out.length < count; round++) {
-            for (const list of groups) {
-                const p = list[round];
-                if (p && !seen.has(p.title) && out.length < count) {
-                    seen.add(p.title);
-                    out.push(p);
-                }
+    function fillTile(tile, photo) {
+        const img = document.createElement("img");
+        img.alt = photo.title;
+        img.title = photo.title;
+        img.decoding = "async";
+        img.addEventListener("load", () => img.classList.add("loaded"));
+        img.addEventListener("error", () => tile.classList.add("failed"));
+        img.src = photo.url;
+        tile.appendChild(img);
+    }
+
+    function showPhotoSkeleton() {
+        ui.photos.className = "cp-photos";
+        ui.photos.innerHTML = '<div class="cp-photo"></div>'.repeat(4);
+    }
+
+    function renderPhotos(photos) {
+        if (!photos.length) {
+            ui.photos.className = "cp-photos is-empty";
+            ui.photos.innerHTML = '<div class="cp-empty">No photos available</div>';
+            return;
+        }
+
+        ui.photos.className = `cp-photos n-${photos.length}`;
+        ui.photos.innerHTML = "";
+        photos.forEach((photo, index) => {
+            const tile = document.createElement("div");
+            tile.className = "cp-photo";
+            tile.style.setProperty("--delay", `${index * 0.06}s`);
+            fillTile(tile, photo);
+            ui.photos.appendChild(tile);
+        });
+    }
+
+    // each search fills its own tile as soon as it answers
+    function loadPhotos(entity, signal, fresh) {
+        const key = `photos:${entityKey(entity)}`;
+        const saved = readStore(key);
+        if (saved && saved.length) {
+            renderPhotos(saved);
+            return;
+        }
+
+        const queries = photoQueries(entity);
+        const tiles = Array.from(ui.photos.children);
+        const slots = new Array(tiles.length).fill(null);
+        const leftovers = [];
+        const seen = new Set();
+        let pending = queries.length;
+        let note = null;
+
+        const slowTimer = setTimeout(() => {
+            if (!fresh() || !pending) return;
+            note = document.createElement("div");
+            note.textContent = "Because of traffic, photos may take longer";
+            note.style.cssText = "grid-column:1/-1;font-size:12px;opacity:.7";
+            ui.photos.appendChild(note);
+        }, SLOW_NOTE_MS);
+
+        function finish() {
+            clearTimeout(slowTimer);
+            if (note) note.remove();
+
+            // empty tiles take unused results from the other searches
+            tiles.forEach((tile, i) => {
+                if (slots[i]) return;
+                const extra = leftovers.find(p => !seen.has(p.title));
+                if (!extra) return;
+                seen.add(extra.title);
+                slots[i] = extra;
+                fillTile(tile, extra);
+            });
+
+            const photos = slots.filter(Boolean);
+            if (!photos.length) {
+                renderPhotos([]);
+                return;
             }
+            tiles.forEach((tile, i) => { if (!slots[i]) tile.remove(); });
+            ui.photos.className = `cp-photos n-${photos.length}`;
+            if (photos.length >= 3) writeStore(key, photos);
         }
-        return out;
+
+        queries.forEach((q, i) => {
+            searchPhotos(q, signal).then(list => {
+                if (!fresh()) return;
+                const first = tiles[i] && list.find(p => !seen.has(p.title));
+                if (first) {
+                    seen.add(first.title);
+                    slots[i] = first;
+                    fillTile(tiles[i], first);
+                }
+                list.forEach(p => { if (p !== first) leftovers.push(p); });
+                if (--pending === 0) finish();
+            });
+        });
     }
-
-    const manual = LANDMARKS[country];
-    const landmarkQueries = manual ? manual.slice(0, 2)
-        : [`${country} famous landmark`, `${country} historic site`, `${capital || country} landmark`];
-    const landscapeQueries = manual ? manual.slice(2, 4)
-        : [`${country} landscape`, `${country} mountains`, `${country} national park`, `${country} coast`];
-
-    const [landmarkGroups, landscapeGroups] = await Promise.all([
-        Promise.all(landmarkQueries.map(search)),
-        Promise.all(landscapeQueries.map(search))
-    ]);
-
-    const seen = new Set();
-    const landmarks = pick(landmarkGroups, 2, seen);
-    const landscapes = pick(landscapeGroups, 2, seen);
-
-    return [...landmarks, ...landscapes];
-}
 
     // WEATHER
     function weatherInfo(code, isDay) {
@@ -410,6 +567,7 @@
     // GDP CHART
     function renderGdp(entity, result) {
         const series = result.gdp;
+        const capitaByYear = new Map(result.capita.map(p => [p.year, p.value]));
         ui.chart.innerHTML = "";
 
         if (series.length < 2) {
@@ -423,7 +581,9 @@
         const y0 = series[0].year;
         const y1 = series[series.length - 1].year;
         const span = Math.max(1, y1 - y0);
-        const maxValue = niceCeil(Math.max(...series.map(p => p.value)));
+        let maxRaw = 0;
+        series.forEach(p => { if (p.value > maxRaw) maxRaw = p.value; });
+        const maxValue = niceCeil(maxRaw);
         const X = year => L + ((year - y0) / span) * (W - L - R);
         const Y = value => T + (1 - value / maxValue) * (H - T - B);
 
@@ -453,6 +613,7 @@
         const markerDot = svg.querySelector(".cp-marker-dot");
         const markerTag = svg.querySelector(".cp-marker-tag");
         const markerText = svg.querySelector(".cp-marker-text");
+        const hit = svg.querySelector(".cp-hit");
 
         function showPoint(index) {
             const point = series[index];
@@ -466,66 +627,47 @@
             markerText.textContent = point.year;
 
             setText(ui.gdpValue, fmtMoney(point.value));
-            const capita = result.capitaByYear.get(point.year);
+            const capita = capitaByYear.get(point.year);
             setText(ui.gdpCapita, capita != null ? `Per capita: $${Math.round(capita).toLocaleString("en-US")}` : "Per capita: —");
         }
 
         const last = series.length - 1;
         showPoint(last);
 
-        svg.querySelector(".cp-hit").addEventListener("pointermove", event => {
-            const rect = svg.getBoundingClientRect();
-            const x = ((event.clientX - rect.left) / rect.width) * W;
-            const year = y0 + ((x - L) / (W - L - R)) * span;
-            let best = 0;
-            series.forEach((p, i) => { if (Math.abs(p.year - year) < Math.abs(series[best].year - year)) best = i; });
-            showPoint(best);
+        // at most one update per frame while moving the mouse
+        let frame = 0;
+        let pointerX = 0;
+        hit.addEventListener("pointermove", event => {
+            pointerX = event.clientX;
+            if (frame) return;
+            frame = requestAnimationFrame(() => {
+                frame = 0;
+                const rect = svg.getBoundingClientRect();
+                const x = ((pointerX - rect.left) / rect.width) * W;
+                const year = y0 + ((x - L) / (W - L - R)) * span;
+                let best = 0;
+                for (let i = 1; i < series.length; i++) {
+                    if (Math.abs(series[i].year - year) < Math.abs(series[best].year - year)) best = i;
+                }
+                showPoint(best);
+            });
         });
-        svg.querySelector(".cp-hit").addEventListener("pointerleave", () => showPoint(last));
+        hit.addEventListener("pointerleave", () => {
+            cancelAnimationFrame(frame);
+            frame = 0;
+            showPoint(last);
+        });
 
         const length = line.getTotalLength();
         line.style.strokeDasharray = length;
         line.style.strokeDashoffset = length;
         marker.style.opacity = "0";
         requestAnimationFrame(() => requestAnimationFrame(() => {
-            line.style.transition = "stroke-dashoffset 1.4s cubic-bezier(0.16, 1, 0.3, 1)";
+            line.style.transition = "stroke-dashoffset 0.7s cubic-bezier(0.16, 1, 0.3, 1)";
             line.style.strokeDashoffset = "0";
-            marker.style.transition = "opacity 0.5s ease 1s";
+            marker.style.transition = "opacity 0.3s ease 0.5s";
             marker.style.opacity = "1";
         }));
-    }
-
-    // PHOTOS
-    function showPhotoSkeleton() {
-        ui.photos.className = "cp-photos";
-        ui.photos.innerHTML = '<div class="cp-photo"></div>'.repeat(4);
-    }
-
-    function renderPhotos(photos) {
-        if (!photos.length) {
-            ui.photos.className = "cp-photos is-empty";
-            ui.photos.innerHTML = '<div class="cp-empty">No photos available</div>';
-            return;
-        }
-
-        ui.photos.className = `cp-photos n-${photos.length}`;
-        ui.photos.innerHTML = "";
-        photos.forEach((photo, index) => {
-            const tile = document.createElement("div");
-            tile.className = "cp-photo";
-            tile.style.setProperty("--delay", `${index * 0.12}s`);
-
-            const img = document.createElement("img");
-            img.alt = photo.title;
-            img.title = photo.title;
-            img.decoding = "async";
-            img.addEventListener("load", () => img.classList.add("loaded"));
-            img.addEventListener("error", () => tile.classList.add("failed"));
-            img.src = photo.url;
-
-            tile.appendChild(img);
-            ui.photos.appendChild(tile);
-        });
     }
 
     // LOAD A COUNTRY
@@ -561,14 +703,25 @@
         setTimezone(null);
     }
 
-    function loadCountry(entity, token) {
+    function loadCountry(entity, token, signal) {
         const fresh = () => token === requestToken;
-        const key = entity.iso2 || entity.iso3 || entity.name;
+
+        // Photos start right away, they do not wait for anything
+        loadPhotos(entity, signal, fresh);
+
+        // GDP
+        getGdp(entity, signal).then(result => {
+            if (fresh()) renderGdp(entity, result);
+        }).catch(error => {
+            if (!fresh()) return;
+            console.warn("[Aurora Orbit] GDP failed:", error.message);
+            ui.chart.innerHTML = '<div class="cp-empty">GDP data not available</div>';
+            setText(ui.gdpValue, "—");
+            setText(ui.gdpCapita, "");
+        });
 
         // Basics -> weather + time
-        const basicsPromise = memo(`basics:${key}`, () => fetchBasics(entity));
-
-        basicsPromise.then(async basics => {
+        getBasics(entity, signal).then(async basics => {
             if (!fresh()) return;
             setText(ui.wCity, basics.capital || entity.name);
             setText(ui.area, basics.area ? fmtArea(basics.area) : "—");
@@ -578,38 +731,17 @@
             const lng = Number.isFinite(basics.lng) ? basics.lng : entity.lng;
             if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("No coordinates");
 
-            const weather = await fetchWeather(lat, lng);
+            const weather = await fetchWeather(lat, lng, signal);
             if (!fresh()) return;
             renderWeather(weather);
             setTimezone(weather.timezone);
         }).catch(error => {
-            console.warn("[Aurora Orbit] Basics/weather failed:", error.message);
             if (!fresh()) return;
+            console.warn("[Aurora Orbit] Basics/weather failed:", error.message);
             setText(ui.wCity, entity.name);
             if (ui.area.classList.contains("skel")) setText(ui.area, "—");
             if (ui.pop.classList.contains("skel")) setText(ui.pop, "—");
             renderWeatherError();
-        });
-
-        // GDP
-        memo(`gdp:${key}`, () => fetchGdp(entity)).then(result => {
-            if (fresh()) renderGdp(entity, result);
-        }).catch(error => {
-            console.warn("[Aurora Orbit] GDP failed:", error.message);
-            if (!fresh()) return;
-            ui.chart.innerHTML = '<div class="cp-empty">GDP data not available</div>';
-            setText(ui.gdpValue, "—");
-            setText(ui.gdpCapita, "");
-        });
-
-        // Photos
-        basicsPromise.catch(() => ({})).then(basics =>
-            memo(`photos:${key}`, () => fetchPhotos(entity, basics && basics.capital))
-        ).then(photos => {
-            if (fresh()) renderPhotos(photos);
-        }).catch(error => {
-            console.warn("[Aurora Orbit] Photos failed:", error.message);
-            if (fresh()) renderPhotos([]);
         });
     }
 
@@ -620,20 +752,31 @@
 
         current = entity;
         const token = ++requestToken;
+        if (abortCtrl) abortCtrl.abort();   // frees the connections of the old country
+        abortCtrl = new AbortController();
         resetContent(entity);
         startClock();
         setState(state === "hidden" ? lastMode : state);
-        loadCountry(entity, token);
+        loadCountry(entity, token, abortCtrl.signal);
     }
 
     function close() {
         current = null;
         requestToken++;
+        if (abortCtrl) abortCtrl.abort();
+        abortCtrl = null;
         stopClock();
         setState("hidden");
     }
 
-    window.CountryPanel = { open, close };
+    // optional: call on hover so the data is ready before the click
+    function prefetch(entity) {
+        if (!entity) return;
+        getBasics(entity).catch(() => {});
+        getGdp(entity).catch(() => {});
+    }
+
+    window.CountryPanel = { open, close, prefetch };
 
     // EVENTS
     if (ui.expandBtn) ui.expandBtn.addEventListener("click", () => setState("big"));
@@ -643,7 +786,7 @@
         if (event.key === "Escape" && state === "big") setState("mini");
     });
 
-     [ui.miniFlag, ui.flag, ui.miniIcon, ui.wIcon].forEach(img => {
+    [ui.miniFlag, ui.flag, ui.miniIcon, ui.wIcon].forEach(img => {
         if (img) img.addEventListener("error", () => { img.style.visibility = "hidden"; });
     });
 
