@@ -33,7 +33,7 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 
 1. Click a country or search up using the search bar.
 2. After you get did there will be see the mine card it’s the small hub about the selected country, you can expand it using the arrow button to see more info.
-3.menu button to change the settings and sum more stuff
+3. menu button to change the settings and sum more stuff
 
 ## Credits
 - **Three.js** - MIT License [threejs.org](https://threejs.org)
@@ -52,7 +52,7 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 2. the APIs can get slow or not working.
 3. APIs can be blocked sum times.
 
-### fixes that can be help for this problems 
+### Fixes that can be help for this problems 
 
 Wight a few sec, try aging or reload it to fix those problems.
 I can not fix those few problems because its not in my said.
