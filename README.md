@@ -47,6 +47,15 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 - **Borders** by Natural Earth - public domain [naturalearthdata.com](https://www.naturalearthdata.com)
 - **Photos** by Wikimedia Commons [commons.wikimedia.org](https://commons.wikimedia.org)
 
+
+## Sum small stuff there can be that I can't 
+1. sum time it will tack longer to load the assets and images.
+2. the APIs can get slow or not working.
+3. APIs can be blocked sum times.
+
+Wight a few sec, try aging or reload it to fix those problems.
+I cant fix those few problems because its not in my said.
+
 ## AI 
 This is my fest web app that I make and I use lot of Ai for this.
 To learn and to see how it can done, so in sum parts I use Ai and sum parts written by me that I learn from Ai and sum tutorials.
