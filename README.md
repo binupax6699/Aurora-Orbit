@@ -49,11 +49,15 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 
 
 ## Sum small stuff there can be that I can't fix
+
 1.sum time it will tack longer to load the assets and images.
+
 2.the APIs can get slow or not working.
+
 3.APIs can be blocked sum times.
 
 Wight a few sec, try aging or reload it to fix those problems.
+
 I can not fix those few problems because its not in my said.
 
 ## AI 
