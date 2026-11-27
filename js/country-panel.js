@@ -17,7 +17,7 @@
     const WEATHER_CACHE_MS = 10 * 60 * 1000;
     const STORE_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // basics, GDP and photos rarely change
     const STORE_PREFIX = "ao:";
-    const TIMEOUT_MS = 8000;                         // give up on one slow request
+    const GIVE_UP_MS = 120000;                       // keep retrying for 2 minutes
     const SLOW_NOTE_MS = 4000;                       // show the traffic note after this
     const PHOTO_WIDTH = 640;
     const SWAP_MS = 900;
@@ -159,7 +159,10 @@
         try { localStorage.setItem(STORE_PREFIX + key, JSON.stringify({ t: Date.now(), v: value })); } catch (error) { /* full or blocked */ }
     }
 
-    async function getJSON(url, signal, ms = TIMEOUT_MS) {
+    const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+    // one single try
+    async function fetchOnce(url, signal, ms) {
         const ctrl = new AbortController();
         const stop = () => ctrl.abort();
         if (signal) {
@@ -169,11 +172,36 @@
         const timer = setTimeout(stop, ms);
         try {
             const response = await fetch(url, { signal: ctrl.signal });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            if (!response.ok) {
+                const error = new Error(`HTTP ${response.status}`);
+                error.status = response.status;
+                throw error;
+            }
             return await response.json();
         } finally {
             clearTimeout(timer);
             if (signal) signal.removeEventListener("abort", stop);
+        }
+    }
+
+    // tries again and again until the total time is over
+    async function getJSON(url, signal, total = GIVE_UP_MS) {
+        const deadline = Date.now() + total;
+        let wait = 800;
+        for (let attempt = 1; ; attempt++) {
+            if (signal && signal.aborted) throw new Error("aborted");
+            const left = deadline - Date.now();
+            // each try is allowed a bit longer on slow WiFi
+            const ms = Math.max(1000, Math.min(6000 + attempt * 3000, 20000, left));
+            try {
+                return await fetchOnce(url, signal, ms);
+            } catch (error) {
+                // 404 and similar will never work, so do not retry those
+                const hopeless = error.status >= 400 && error.status < 500 && error.status !== 429;
+                if (hopeless || (signal && signal.aborted) || Date.now() + wait >= deadline) throw error;
+                await sleep(wait);
+                wait = Math.min(wait * 1.6, 4000);
+            }
         }
     }
 
