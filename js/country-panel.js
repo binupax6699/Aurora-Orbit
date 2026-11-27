@@ -18,6 +18,7 @@
     const STORE_TTL_MS = 7 * 24 * 60 * 60 * 1000;   // basics, GDP and photos rarely change
     const STORE_PREFIX = "ao:";
     const GIVE_UP_MS = 120000;                       // keep retrying for 2 minutes
+    const FAST_TRY_MS = 1500;                        // first try of the small APIs, so a stuck one is retried quickly
     const SLOW_NOTE_MS = 4000;                       // show the traffic note after this
     const PHOTO_WIDTH = 640;
     const SWAP_MS = 900;
@@ -185,14 +186,14 @@
     }
 
     // tries again and again until the total time is over
-    async function getJSON(url, signal, total = GIVE_UP_MS) {
+    async function getJSON(url, signal, total = GIVE_UP_MS, base = 6000) {
         const deadline = Date.now() + total;
         let wait = 800;
         for (let attempt = 1; ; attempt++) {
             if (signal && signal.aborted) throw new Error("aborted");
             const left = deadline - Date.now();
             // each try is allowed a bit longer on slow WiFi
-            const ms = Math.max(1000, Math.min(6000 + attempt * 3000, 20000, left));
+            const ms = Math.max(1000, Math.min(base + attempt * 3000, 20000, left));
             try {
                 return await fetchOnce(url, signal, ms);
             } catch (error) {
@@ -333,48 +334,36 @@
 
     // DATA LOADERS
     async function fetchWorldBankLatest(iso3, indicator, signal) {
-        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&mrnev=1`, signal);
+        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&mrnev=1`, signal, GIVE_UP_MS, FAST_TRY_MS);
         const row = data && data[1] && data[1][0];
         return row && row.value != null ? row.value : null;
     }
 
-    async function fetchBasics(entity, signal) {
-        try {
-            const fields = "capital,capitalInfo,region,area,population,latlng";
-            // short timeout, this API is the slowest one, World Bank is the backup
-            const data = await getJSON(`https://restcountries.com/v3.1/alpha/${entity.iso2}?fields=${fields}`, signal, 5000);
-            const c = Array.isArray(data) ? data[0] : data;
-            const capitalLatLng = (c.capitalInfo && c.capitalInfo.latlng) || c.latlng || [];
-            return {
-                region: c.region || "",
-                capital: (c.capital && c.capital[0]) || "",
-                lat: capitalLatLng[0],
-                lng: capitalLatLng[1],
-                area: c.area,
-                population: c.population
-            };
-        } catch (error) {
-            if (signal && signal.aborted) throw error;
-            console.warn("[Aurora Orbit] REST Countries failed, trying World Bank:", error.message);
-        }
+    async function fetchRest(entity, signal) {
+        const fields = "capital,capitalInfo,region,area,population,latlng";
+        // short limit, this API is the slowest one, World Bank is the backup
+        const data = await getJSON(`https://restcountries.com/v3.1/alpha/${entity.iso2}?fields=${fields}`, signal, 6000, FAST_TRY_MS);
+        const c = Array.isArray(data) ? data[0] : data;
+        const capitalLatLng = (c.capitalInfo && c.capitalInfo.latlng) || c.latlng || [];
+        return {
+            region: c.region || "",
+            capital: (c.capital && c.capital[0]) || "",
+            lat: capitalLatLng[0],
+            lng: capitalLatLng[1],
+            area: c.area,
+            population: c.population
+        };
+    }
 
-        // all three run at the same time
-        const [info, population, area] = await Promise.all([
-            getJSON(`https://api.worldbank.org/v2/country/${entity.iso3}?format=json`, signal).catch(() => null),
-            fetchWorldBankLatest(entity.iso3, "SP.POP.TOTL", signal).catch(() => null),
-            fetchWorldBankLatest(entity.iso3, "AG.SRF.TOTL.K2", signal).catch(() => null)
-        ]);
-        if (signal && signal.aborted) throw new Error("aborted");
-
-        const basics = { population, area };
-        const c = info && info[1] && info[1][0];
-        if (c) {
-            basics.region = c.region && c.region.value !== "Aggregates" ? c.region.value : "";
-            basics.capital = c.capitalCity || "";
-            basics.lat = parseFloat(c.latitude);
-            basics.lng = parseFloat(c.longitude);
-        }
-        return basics;
+    async function fetchWorldBankInfo(entity, signal) {
+        const data = await getJSON(`https://api.worldbank.org/v2/country/${entity.iso3}?format=json`, signal, GIVE_UP_MS, FAST_TRY_MS);
+        const c = data && data[1] && data[1][0];
+        if (!c) throw new Error("No data");
+        return {
+            capital: c.capitalCity || "",
+            lat: parseFloat(c.latitude),
+            lng: parseFloat(c.longitude)
+        };
     }
 
     function fetchWeather(lat, lng, signal) {
@@ -387,7 +376,7 @@
             "&current=temperature_2m,weather_code,is_day" +
             "&daily=temperature_2m_max,temperature_2m_min" +
             "&timezone=auto&forecast_days=1";
-        const promise = getJSON(url, signal).then(data => ({
+        const promise = getJSON(url, signal, GIVE_UP_MS, FAST_TRY_MS).then(data => ({
             temp: data.current.temperature_2m,
             code: data.current.weather_code,
             isDay: data.current.is_day === 1,
@@ -404,7 +393,7 @@
     }
 
     async function fetchWorldBankSeries(iso3, indicator, signal) {
-        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&per_page=40&date=2000:2026`, signal);
+        const data = await getJSON(`https://api.worldbank.org/v2/country/${iso3}/indicator/${indicator}?format=json&per_page=40&date=2000:2026`, signal, GIVE_UP_MS, FAST_TRY_MS);
         const rows = (data && data[1]) || [];
         return rows
             .filter(row => row.value != null)
@@ -412,22 +401,25 @@
             .sort((a, b) => a.year - b.year);
     }
 
-    // returns plain arrays so it can be saved in localStorage
-    async function fetchGdp(entity, signal) {
-        const [gdp, capita] = await Promise.all([
-            fetchWorldBankSeries(entity.iso3, "NY.GDP.MKTP.CD", signal),
-            fetchWorldBankSeries(entity.iso3, "NY.GDP.PCAP.CD", signal).catch(() => [])
-        ]);
-        if (signal && signal.aborted) throw new Error("aborted");
-        return { gdp, capita };
+    // every piece is cached and loaded on its own
+    function getRest(entity, signal) {
+        return cached(`basics:${entityKey(entity)}`, () => fetchRest(entity, signal), v => !!(v && (v.capital || v.population)));
     }
 
-    function getBasics(entity, signal) {
-        return cached(`basics:${entityKey(entity)}`, () => fetchBasics(entity, signal), v => !!(v && (v.capital || v.population)));
+    function getWorldBankInfo(entity, signal) {
+        return cached(`wbinfo:${entityKey(entity)}`, () => fetchWorldBankInfo(entity, signal), v => !!(v && v.capital));
     }
 
-    function getGdp(entity, signal) {
-        return cached(`gdp:${entityKey(entity)}`, () => fetchGdp(entity, signal), v => !!(v && v.gdp.length > 1));
+    function getWorldBankLatest(entity, indicator, signal) {
+        return cached(`wb:${indicator}:${entityKey(entity)}`, () => fetchWorldBankLatest(entity.iso3, indicator, signal), v => v != null);
+    }
+
+    function getGdpSeries(entity, signal) {
+        return cached(`gdps:${entityKey(entity)}`, () => fetchWorldBankSeries(entity.iso3, "NY.GDP.MKTP.CD", signal), v => v.length > 1);
+    }
+
+    function getCapitaSeries(entity, signal) {
+        return cached(`capita:${entityKey(entity)}`, () => fetchWorldBankSeries(entity.iso3, "NY.GDP.PCAP.CD", signal), v => v.length > 0);
     }
 
     // PHOTOS
@@ -593,16 +585,16 @@
     }
 
     // GDP CHART
-    function renderGdp(entity, result) {
-        const series = result.gdp;
-        const capitaByYear = new Map(result.capita.map(p => [p.year, p.value]));
+    function renderGdp(entity, series) {
+        let capitaByYear = null;   // stays null while per capita is loading
+        let shown = series.length - 1;
         ui.chart.innerHTML = "";
 
         if (series.length < 2) {
             ui.chart.innerHTML = '<div class="cp-empty">GDP data not available</div>';
             setText(ui.gdpValue, "—");
             setText(ui.gdpCapita, "");
-            return;
+            return null;
         }
 
         const W = 190, H = 100, L = 26, R = 6, T = 12, B = 14;
@@ -644,6 +636,7 @@
         const hit = svg.querySelector(".cp-hit");
 
         function showPoint(index) {
+            shown = index;
             const point = series[index];
             const x = X(point.year);
             const tagX = Math.max(L + 14, Math.min(W - 14, x));
@@ -655,6 +648,10 @@
             markerText.textContent = point.year;
 
             setText(ui.gdpValue, fmtMoney(point.value));
+            if (!capitaByYear) {
+                setSkeleton(ui.gdpCapita, 12);
+                return;
+            }
             const capita = capitaByYear.get(point.year);
             setText(ui.gdpCapita, capita != null ? `Per capita: $${Math.round(capita).toLocaleString("en-US")}` : "Per capita: —");
         }
@@ -696,6 +693,13 @@
             marker.style.transition = "opacity 0.3s ease 0.5s";
             marker.style.opacity = "1";
         }));
+
+        return {
+            setCapita(map) {
+                capitaByYear = map;
+                showPoint(shown);
+            }
+        };
     }
 
     // LOAD A COUNTRY
@@ -731,15 +735,80 @@
         setTimezone(null);
     }
 
-    function loadCountry(entity, token, signal) {
-        const fresh = () => token === requestToken;
+    // weather and time do not wait for the other APIs
+    function createWeatherLoader(signal, fresh) {
+        let used = null;     // coordinates of the weather that is on screen
+        let shown = false;
 
-        // Photos start right away, they do not wait for anything
-        loadPhotos(entity, signal, fresh);
+        function run(lat, lng) {
+            if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
+            if (used && Math.abs(used.lat - lat) < 0.5 && Math.abs(used.lng - lng) < 0.5) return;
+            const mine = used = { lat, lng };
+            fetchWeather(lat, lng, signal).then(weather => {
+                if (!fresh() || used !== mine) return;
+                shown = true;
+                renderWeather(weather);
+                setTimezone(weather.timezone);
+            }).catch(error => {
+                if (!fresh() || used !== mine || shown) return;
+                console.warn("[Aurora Orbit] Weather failed:", error.message);
+                renderWeatherError();
+            });
+        }
 
-        // GDP
-        getGdp(entity, signal).then(result => {
-            if (fresh()) renderGdp(entity, result);
+        // called when the basics are done, if there were no coordinates at all
+        function settle() {
+            if (fresh() && !used) renderWeatherError();
+        }
+
+        return { run, settle };
+    }
+
+    function loadBasics(entity, signal, fresh, weather) {
+        const applyCapital = capital => setText(ui.wCity, capital || entity.name);
+        const applyArea = area => setText(ui.area, area ? fmtArea(area) : "—");
+        const applyPop = pop => setText(ui.pop, pop ? fmtPopulation(pop) : "—");
+
+        getRest(entity, signal).then(basics => {
+            if (!fresh()) return;
+            applyCapital(basics.capital);
+            applyArea(basics.area);
+            applyPop(basics.population);
+            weather.run(basics.lat, basics.lng);
+            weather.settle();
+        }).catch(error => {
+            if (!fresh()) return;
+            console.warn("[Aurora Orbit] REST Countries failed, trying World Bank:", error.message);
+
+            // backup: three separate requests, each one fills its own field when ready
+            getWorldBankInfo(entity, signal).then(info => {
+                if (!fresh()) return;
+                applyCapital(info.capital);
+                weather.run(info.lat, info.lng);
+            }).catch(() => {
+                if (fresh()) applyCapital("");
+            }).then(() => weather.settle());
+
+            getWorldBankLatest(entity, "AG.SRF.TOTL.K2", signal)
+                .then(area => { if (fresh()) applyArea(area); })
+                .catch(() => { if (fresh()) applyArea(null); });
+
+            getWorldBankLatest(entity, "SP.POP.TOTL", signal)
+                .then(pop => { if (fresh()) applyPop(pop); })
+                .catch(() => { if (fresh()) applyPop(null); });
+        });
+    }
+
+    function loadGdp(entity, signal, fresh) {
+        let chart = null;
+        let capitaMap = null;
+        const link = () => { if (chart && capitaMap) chart.setCapita(capitaMap); };
+
+        // the chart shows as soon as the GDP line is there, per capita comes later
+        getGdpSeries(entity, signal).then(series => {
+            if (!fresh()) return;
+            chart = renderGdp(entity, series);
+            link();
         }).catch(error => {
             if (!fresh()) return;
             console.warn("[Aurora Orbit] GDP failed:", error.message);
@@ -748,29 +817,30 @@
             setText(ui.gdpCapita, "");
         });
 
-        // Basics -> weather + time
-        getBasics(entity, signal).then(async basics => {
+        getCapitaSeries(entity, signal).then(list => {
             if (!fresh()) return;
-            setText(ui.wCity, basics.capital || entity.name);
-            setText(ui.area, basics.area ? fmtArea(basics.area) : "—");
-            setText(ui.pop, basics.population ? fmtPopulation(basics.population) : "—");
-
-            const lat = Number.isFinite(basics.lat) ? basics.lat : entity.lat;
-            const lng = Number.isFinite(basics.lng) ? basics.lng : entity.lng;
-            if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("No coordinates");
-
-            const weather = await fetchWeather(lat, lng, signal);
+            capitaMap = new Map(list.map(p => [p.year, p.value]));
+            link();
+        }).catch(() => {
             if (!fresh()) return;
-            renderWeather(weather);
-            setTimezone(weather.timezone);
-        }).catch(error => {
-            if (!fresh()) return;
-            console.warn("[Aurora Orbit] Basics/weather failed:", error.message);
-            setText(ui.wCity, entity.name);
-            if (ui.area.classList.contains("skel")) setText(ui.area, "—");
-            if (ui.pop.classList.contains("skel")) setText(ui.pop, "—");
-            renderWeatherError();
+            capitaMap = new Map();
+            link();
         });
+    }
+
+    function loadCountry(entity, token, signal) {
+        const fresh = () => token === requestToken;
+
+        // Photos, GDP, weather/time and basics all start at the same moment
+        loadPhotos(entity, signal, fresh);
+        loadGdp(entity, signal, fresh);
+
+        const weather = createWeatherLoader(signal, fresh);
+        const saved = readStore(`basics:${entityKey(entity)}`);
+        const start = saved && Number.isFinite(saved.lat) ? saved : entity;
+        weather.run(start.lat, start.lng);
+
+        loadBasics(entity, signal, fresh, weather);
     }
 
     // PUBLIC API
@@ -800,8 +870,9 @@
     // optional: call on hover so the data is ready before the click
     function prefetch(entity) {
         if (!entity) return;
-        getBasics(entity).catch(() => {});
-        getGdp(entity).catch(() => {});
+        getRest(entity).catch(() => {});
+        getGdpSeries(entity).catch(() => {});
+        getCapitaSeries(entity).catch(() => {});
     }
 
     window.CountryPanel = { open, close, prefetch };
