@@ -31,11 +31,9 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 
 <td><img src="images/002.png"></td>
 
-1.Click a country or search up using the search bar.
-
-2.After you get did there will be see the mine card it’s the small hub about the selected country, you can expand it using the arrow button to see more info.
-
-3.menu button to change the settings and sum more stuff
+1. Click a country or search up using the search bar.
+2. After you get did there will be see the mine card it’s the small hub about the selected country, you can expand it using the arrow button to see more info.
+3. menu button to change the settings and sum more stuff
 
 ## Credits
 - **Three.js** - MIT License [threejs.org](https://threejs.org)
@@ -46,6 +44,20 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 - **Country data** by REST Countries [restcountries.com](https://restcountries.com)
 - **Borders** by Natural Earth - public domain [naturalearthdata.com](https://www.naturalearthdata.com)
 - **Photos** by Wikimedia Commons [commons.wikimedia.org](https://commons.wikimedia.org)
+
+
+## Sum small stuff there can be that I can't fix
+
+1. Som time it will tack longer to load the assets and images.
+2. The APIs can get slow or not working.
+3. APIs can be blocked sum times.
+4. The Data not available
+5. Som APIs got limited access (World Bank, Open-Meteo)
+
+### Fixes that can be help for this problems 
+
+Wight a few sec, try aging or reload it to fix those problems.
+I can not fix those few problems because its not in my said.
 
 ## AI 
 This is my fest web app that I make and I use lot of Ai for this.
