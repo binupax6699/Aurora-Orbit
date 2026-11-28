@@ -34,6 +34,7 @@ this is real time so I use API for the Wind and Precipitation and also if its of
 1. Click a country or search up using the search bar.
 2. After you get did there will be see the mine card it’s the small hub about the selected country, you can expand it using the arrow button to see more info.
 3. menu button to change the settings and sum more stuff
+4. in the right said there will be a small arrow to show the wether stuff
 
 ## Credits
 - **Three.js** - MIT License [threejs.org](https://threejs.org)
